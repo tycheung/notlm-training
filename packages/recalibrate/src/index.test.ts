@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -9,6 +9,7 @@ import {
   loadExchangesFromJson,
   loadExchangesFromRaw,
   writeExchangeDraft,
+  writeFoldedPackDraft,
 } from './index.js';
 import type { MissExchange } from '@uipilot/core';
 
@@ -133,5 +134,57 @@ describe('recalibrate', () => {
     expect(existsSync(draftPath)).toBe(true);
     const draft = JSON.parse(readFileSync(draftPath, 'utf8'));
     expect(draft.proposedAliases.create_tournament).toEqual(['make a tourney']);
+  });
+
+  it('folds exchange draft into pack-accept pieces (merges pack)', () => {
+    const home = mkdtempSync(join(tmpdir(), 'uipilot-fold-'));
+    const pack = join(home, 'pack');
+    mkdirSync(pack, { recursive: true });
+    writeFileSync(
+      join(pack, 'intents.json'),
+      JSON.stringify({
+        aliases: { create_tournament: ['create tournament'] },
+        meta: ['help'],
+      }),
+      'utf8'
+    );
+    writeFileSync(
+      join(pack, 'faq.json'),
+      JSON.stringify([{ id: 'keep-me', aliases: ['x'], text: 'keep' }]),
+      'utf8'
+    );
+    writeFileSync(
+      join(pack, 'corpus.json'),
+      JSON.stringify([{ utterance: 'old', expect: { stepId: 'create_tournament' } }]),
+      'utf8'
+    );
+
+    const exDir = writeExchangeDraft(home, sample);
+    const foldedDir = writeFoldedPackDraft(home, join(exDir, 'draft.json'));
+    expect(existsSync(join(foldedDir, 'meta.json'))).toBe(true);
+    const meta = JSON.parse(readFileSync(join(foldedDir, 'meta.json'), 'utf8'));
+    expect(meta.kind).toBe('exchanges-fold');
+    expect(meta.checked).toBe(false);
+
+    const intents = JSON.parse(readFileSync(join(foldedDir, 'intents.json'), 'utf8'));
+    expect(intents.aliases.create_tournament).toContain('create tournament');
+    expect(intents.aliases.create_tournament).toContain('make a tourney');
+    expect(intents.aliases._unknown_step).toBeUndefined();
+    expect(intents.meta).toEqual(['help']);
+
+    const faq = JSON.parse(readFileSync(join(foldedDir, 'faq.json'), 'utf8'));
+    expect(faq.some((f: { id: string }) => f.id === 'keep-me')).toBe(true);
+    expect(faq.some((f: { id: string }) => f.id === 'pricing')).toBe(true);
+
+    const corpus = JSON.parse(readFileSync(join(foldedDir, 'corpus.json'), 'utf8'));
+    expect(corpus.some((c: { expect: { stepId: string | null } }) => c.expect.stepId === null)).toBe(
+      true
+    );
+
+    const scenarios = JSON.parse(
+      readFileSync(join(foldedDir, 'scenarios.json'), 'utf8')
+    ) as Array<{ utterance: string; expect: { stepId: string | null } }>;
+    expect(scenarios.some((s) => s.utterance === 'make a tourney')).toBe(true);
+    expect(scenarios.some((s) => s.expect.stepId === null)).toBe(true);
   });
 });

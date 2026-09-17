@@ -1,0 +1,14 @@
+[
+  { "stepId": "create_list", "path": "data.listCount", "op": "gte", "value": 1 },
+  { "stepId": "add_item", "path": "data.itemCount", "op": "gte", "value": 1 },
+  { "stepId": "complete_item", "path": "data.completedCount", "op": "gte", "value": 1 },
+  { "stepId": "open_files_tab", "path": "data.labTab", "op": "eq", "value": "files" },
+  { "stepId": "export_via_menu", "path": "data.labExported", "op": "truthy" },
+  { "stepId": "upload_attachment", "path": "data.labUploaded", "op": "truthy" },
+  { "stepId": "pick_priority", "path": "data.labPriority", "op": "truthy" },
+  { "stepId": "confirm_clear_lab", "path": "data.labCleared", "op": "truthy" },
+  { "stepId": "wizard_name", "path": "data.wizardPage", "op": "gte", "value": 1 },
+  { "stepId": "wizard_finish", "path": "data.wizardDone", "op": "truthy" },
+  { "stepId": "open_lab_drawer", "path": "data.labDrawerOpen", "op": "truthy" },
+  { "stepId": "empty_start", "path": "data.listCount", "op": "gte", "value": 1 }
+]

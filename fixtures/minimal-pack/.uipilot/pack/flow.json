@@ -1,0 +1,87 @@
+[
+  {
+    "id": "create_list",
+    "title": "Create list",
+    "keywords": ["list", "new list", "create list"],
+    "kind": "hard",
+    "requires": []
+  },
+  {
+    "id": "add_item",
+    "title": "Add item",
+    "keywords": ["add", "todo", "item"],
+    "kind": "hard",
+    "requires": ["create_list"]
+  },
+  {
+    "id": "complete_item",
+    "title": "Complete item",
+    "keywords": ["done", "complete", "check"],
+    "kind": "hard",
+    "requires": ["add_item"]
+  },
+  {
+    "id": "open_files_tab",
+    "title": "Open files tab",
+    "keywords": ["files tab", "attachments"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "export_via_menu",
+    "title": "Export via menu",
+    "keywords": ["export", "menu export"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "upload_attachment",
+    "title": "Upload attachment",
+    "keywords": ["upload", "attach file"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "pick_priority",
+    "title": "Pick priority",
+    "keywords": ["priority", "combobox"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "confirm_clear_lab",
+    "title": "Confirm clear lab",
+    "keywords": ["clear lab", "confirm clear"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "wizard_name",
+    "title": "Wizard name page",
+    "keywords": ["wizard name", "start wizard"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "wizard_finish",
+    "title": "Wizard finish page",
+    "keywords": ["wizard finish", "finish wizard"],
+    "kind": "optional",
+    "requires": ["wizard_name"]
+  },
+  {
+    "id": "open_lab_drawer",
+    "title": "Open lab drawer",
+    "keywords": ["drawer", "lab drawer"],
+    "kind": "optional",
+    "requires": []
+  },
+  {
+    "id": "empty_start",
+    "title": "Empty start CTA",
+    "keywords": ["get started", "empty start"],
+    "kind": "optional",
+    "requires": [],
+    "hideWhen": ["hasLists"]
+  }
+]

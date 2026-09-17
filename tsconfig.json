@@ -1,4 +1,12 @@
 {
   "files": [],
-  "references": [{ "path": "packages/cli" }, { "path": "packages/recalibrate" }]
+  "references": [
+    { "path": "packages/llm" },
+    { "path": "packages/author" },
+    { "path": "packages/mapper" },
+    { "path": "packages/codegen" },
+    { "path": "packages/ranker-train" },
+    { "path": "packages/recalibrate" },
+    { "path": "packages/cli" }
+  ]
 }

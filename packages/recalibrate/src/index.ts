@@ -4,7 +4,7 @@ import {
   parseMissExchanges,
   parseMissRecords,
 } from '@uipilot/core';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type ExchangeBucket = {
@@ -103,6 +103,217 @@ export function writeExchangeDraft(
   mkdirSync(outDir, { recursive: true });
   const draft = buildExchangeDraft(exchanges);
   writeFileSync(join(outDir, 'draft.json'), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
+  return outDir;
+}
+
+export type ExchangeDraftJson = ReturnType<typeof buildExchangeDraft>;
+
+export type IntentsPiece = {
+  aliases: Record<string, string[]>;
+  meta?: string[];
+  slots?: Record<string, unknown>;
+  confirm?: string[];
+  [key: string]: unknown;
+};
+
+export type FaqEntry = {
+  id: string;
+  aliases: string[];
+  text: string;
+  stepId?: string;
+};
+
+export type CorpusCase = {
+  utterance: string;
+  expect: { stepId: string | null; [key: string]: unknown };
+};
+
+export type FoldedPackPieces = {
+  intents: IntentsPiece;
+  faq: FaqEntry[];
+  corpus: CorpusCase[];
+  /** Home-root scenarios.json cases for `uipilotCLI intents check`. */
+  scenarios: CorpusCase[];
+  meta: {
+    id: string;
+    kind: 'exchanges-fold';
+    createdAt: string;
+    checked: false;
+    source?: string;
+  };
+};
+
+function readJsonIfExists<T>(path: string, fallback: T): T {
+  if (!existsSync(path)) return fallback;
+  return JSON.parse(readFileSync(path, 'utf8')) as T;
+}
+
+function mergeAliasMaps(
+  base: Record<string, string[]>,
+  proposed: Record<string, string[]>
+): Record<string, string[]> {
+  const out: Record<string, string[]> = { ...base };
+  for (const [stepId, texts] of Object.entries(proposed)) {
+    if (stepId === '_unknown_step') continue; // never promote unknown step ids
+    const merged = [...(out[stepId] ?? [])];
+    for (const t of texts) {
+      const trimmed = t.trim();
+      if (!trimmed) continue;
+      if (!merged.some((x) => x.toLowerCase() === trimmed.toLowerCase())) {
+        merged.push(trimmed);
+      }
+    }
+    if (merged.length) out[stepId] = merged;
+  }
+  return out;
+}
+
+/**
+ * Expand an exchange draft.json into pack-accept-shaped intents/faq/corpus/scenarios.
+ * Merges with existing pack pieces when provided so accept does not wipe pack/.
+ */
+export function foldExchangeDraft(
+  draft: ExchangeDraftJson,
+  opts?: {
+    currentIntents?: IntentsPiece | Record<string, unknown>;
+    currentFaq?: FaqEntry[];
+    currentCorpus?: CorpusCase[];
+    currentScenarios?: CorpusCase[];
+    draftId?: string;
+    sourcePath?: string;
+  }
+): FoldedPackPieces {
+  const currentIntents = (opts?.currentIntents ?? { aliases: {} }) as IntentsPiece;
+  const baseAliases =
+    currentIntents.aliases && typeof currentIntents.aliases === 'object'
+      ? (currentIntents.aliases as Record<string, string[]>)
+      : {};
+  const aliases = mergeAliasMaps(baseAliases, draft.proposedAliases);
+
+  const faqById = new Map<string, FaqEntry>();
+  for (const e of opts?.currentFaq ?? []) {
+    if (e?.id) faqById.set(e.id, e);
+  }
+  for (const e of draft.proposedFaq) {
+    faqById.set(e.id, {
+      id: e.id,
+      aliases: e.aliases,
+      text: e.text,
+      ...(e.stepId ? { stepId: e.stepId } : {}),
+    });
+  }
+
+  const corpusSeen = new Set<string>();
+  const corpus: CorpusCase[] = [];
+  for (const c of opts?.currentCorpus ?? []) {
+    const key = `${c.utterance}::${JSON.stringify(c.expect)}`;
+    if (corpusSeen.has(key)) continue;
+    corpusSeen.add(key);
+    corpus.push(c);
+  }
+  for (const c of draft.proposedCorpus) {
+    if (c.expect.stepId === '_unknown_step') {
+      corpus.push({ utterance: c.utterance, expect: { stepId: null } });
+      continue;
+    }
+    const key = `${c.utterance}::${JSON.stringify(c.expect)}`;
+    if (corpusSeen.has(key)) continue;
+    corpusSeen.add(key);
+    corpus.push(c);
+  }
+
+  // Scenarios for operating intents check: proposed corpus + alias utterances as cases.
+  const scenarioSeen = new Set<string>();
+  const scenarios: CorpusCase[] = [];
+  const pushScenario = (utterance: string, expect: CorpusCase['expect']) => {
+    const key = `${utterance}::${JSON.stringify(expect)}`;
+    if (scenarioSeen.has(key)) return;
+    scenarioSeen.add(key);
+    scenarios.push({ utterance, expect });
+  };
+  for (const c of opts?.currentScenarios ?? []) {
+    pushScenario(c.utterance, c.expect);
+  }
+  for (const c of corpus) {
+    // Only newly folded / proposed-shaped cases from this fold's corpus merge —
+    // include all corpus rows so accept can grow the gate set.
+    pushScenario(c.utterance, c.expect);
+  }
+  for (const [stepId, texts] of Object.entries(draft.proposedAliases)) {
+    if (stepId === '_unknown_step') {
+      for (const t of texts) pushScenario(t, { stepId: null });
+      continue;
+    }
+    for (const t of texts) pushScenario(t, { stepId });
+  }
+
+  const draftId =
+    opts?.draftId ??
+    `exchanges-fold-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+
+  return {
+    intents: {
+      ...currentIntents,
+      aliases,
+    },
+    faq: [...faqById.values()],
+    corpus,
+    scenarios,
+    meta: {
+      id: draftId,
+      kind: 'exchanges-fold',
+      createdAt: new Date().toISOString(),
+      checked: false,
+      ...(opts?.sourcePath ? { source: opts.sourcePath } : {}),
+    },
+  };
+}
+
+/** Write folded pack pieces under `.uipilot/drafts/<id>/` for pack accept. */
+export function writeFoldedPackDraft(
+  homeDir: string,
+  exchangeDraftPath: string,
+  opts?: { packDir?: string }
+): string {
+  const raw = readFileSync(exchangeDraftPath, 'utf8');
+  const draft = JSON.parse(raw) as ExchangeDraftJson;
+  if (!draft || typeof draft !== 'object' || !draft.proposedAliases) {
+    throw new Error(
+      `Invalid exchange draft at ${exchangeDraftPath} (expected proposedAliases)`
+    );
+  }
+
+  const pack = opts?.packDir ?? join(homeDir, 'pack');
+  const currentIntents = readJsonIfExists<IntentsPiece>(join(pack, 'intents.json'), {
+    aliases: {},
+  });
+  const currentFaq = readJsonIfExists<FaqEntry[]>(join(pack, 'faq.json'), []);
+  const currentCorpus = readJsonIfExists<CorpusCase[]>(join(pack, 'corpus.json'), []);
+  const currentScenarios = readJsonIfExists<CorpusCase[]>(
+    join(homeDir, 'scenarios.json'),
+    []
+  );
+
+  const draftId = `exchanges-fold-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  const folded = foldExchangeDraft(draft, {
+    currentIntents,
+    currentFaq: Array.isArray(currentFaq) ? currentFaq : [],
+    currentCorpus: Array.isArray(currentCorpus) ? currentCorpus : [],
+    currentScenarios: Array.isArray(currentScenarios) ? currentScenarios : [],
+    draftId,
+    sourcePath: exchangeDraftPath,
+  });
+
+  const outDir = join(homeDir, 'drafts', draftId);
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, 'intents.json'), `${JSON.stringify(folded.intents, null, 2)}\n`);
+  writeFileSync(join(outDir, 'faq.json'), `${JSON.stringify(folded.faq, null, 2)}\n`);
+  writeFileSync(join(outDir, 'corpus.json'), `${JSON.stringify(folded.corpus, null, 2)}\n`);
+  writeFileSync(
+    join(outDir, 'scenarios.json'),
+    `${JSON.stringify(folded.scenarios, null, 2)}\n`
+  );
+  writeFileSync(join(outDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
   return outDir;
 }
 

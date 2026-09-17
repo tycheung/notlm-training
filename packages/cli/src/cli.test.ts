@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { cmdDraft, cmdMetrics, cmdPull, runCli, takeFlag, usage } from './cli.js';
+import { cmdDraft, cmdFold, cmdMetrics, cmdPull, runCli, takeFlag, usage } from './cli.js';
 
 const sampleExchange = {
   text: 'make a tourney',
@@ -176,6 +176,39 @@ describe('cmdDraft', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await cmdDraft([`--from=${from}`, dir]);
     expect(String(log.mock.calls[0]?.[0])).toMatch(/1 records/);
+  });
+});
+
+describe('cmdFold', () => {
+  it('requires --from', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { cmdFold } = await import('./cli.js');
+    await cmdFold([]);
+    expect(process.exitCode).toBe(1);
+    expect(err.mock.calls[0]?.[0]).toMatch(/--from/);
+  });
+
+  it('writes pack-accept draft from exchange draft.json', async () => {
+    const { cmdFold } = await import('./cli.js');
+    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-fold-'));
+    const home = join(dir, '.uipilot');
+    mkdirSync(join(home, 'pack'), { recursive: true });
+    writeFileSync(
+      join(home, 'pack', 'intents.json'),
+      JSON.stringify({ aliases: { create_tournament: ['create tournament'] } }),
+      'utf8'
+    );
+    const exPath = join(dir, 'ex.json');
+    writeFileSync(exPath, JSON.stringify([sampleExchange]), 'utf8');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await cmdDraft(['--from', exPath, dir]);
+    const draftLine = String(log.mock.calls[0]?.[0]);
+    const m = draftLine.match(/Exchange draft → (.+?) \(/);
+    expect(m?.[1]).toBeTruthy();
+    const draftJson = join(m![1]!, 'draft.json');
+    log.mockClear();
+    await cmdFold(['--from', draftJson, dir]);
+    expect(String(log.mock.calls[0]?.[0])).toMatch(/Folded pack draft/);
   });
 });
 

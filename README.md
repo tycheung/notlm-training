@@ -2,40 +2,65 @@
 
 Offline **tune / train / recalibrate** for UiPilot packs. Not the browser runtime.
 
+Operating **`uipilot` is sealed**: it does not name or advertise this repo. Training
+is the only place that documents both sides.
+
 | Concern | Repo |
 |---------|------|
-| Runtime coach (`@uipilot/core`, `@uipilot/react`) | [`uipilot`](../uipilot) |
-| LLM providers (`@uipilot/llm`) | `uipilot` (host BYO + this CLI) |
-| Saturation, intents tune, map/tune/prepare, exchange→drafts | **this repo** |
+| Runtime (`@uipilot/core`, `@uipilot/react`, schema, ranker **infer**) | sibling [`uipilot`](../uipilot) |
+| Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `uipilot` thin `uipilotCLI` |
+| Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, ranker **train** + ONNX export | **this repo** |
+
+**Sibling required:** root deps are `file:../uipilot/packages/{core,schema,ranker}`.
+Clone beside `uipilot`, build operating packages first, then install/build here.
 
 ## Install
 
 ```bash
-cd uipilot-training
+cd uipilot && npm install && npm run build
+cd ../uipilot-training
 npm install
-npm run build
+npm run build   # required before npx uipilot-training (dist/ gitignored)
 ```
 
-Depends on sibling `../uipilot` packages via `file:` links.
-
-## CLI
+Bootstrap a host folder once with the operating CLI, then improve here:
 
 ```bash
-# Pull portable MissExchange[] from a host (e.g. VB admin GET ?exchanges_only=true)
-npx uipilot-training exchanges pull --url https://api.example/uipilot/misses?exchanges_only=true --out exchanges.json
-
-# Bucket into drafts/ for human accept (1A — never auto-merges pack/)
-npx uipilot-training exchanges draft --from exchanges.json ./my-app
-
-# Local vs fallback hit-rate report from a dump
-npx uipilot-training metrics --from exchanges.json --misses misses.json
-
-# Authoring façades (delegates to @uipilot/author via operating CLI helpers)
-npx uipilot-training tune ./my-app
+uipilotCLI init ./my-app
 ```
 
-Promotion policy (**1A**): drafts only → human/`intents check` accept → local NLU owns the phrase.
+## Learning Mode loop (1A)
+
+```bash
+npx uipilot-training exchanges pull --url …/uipilot/misses?exchanges_only=true --out ex.json
+npx uipilot-training exchanges draft --from ex.json ./my-app
+npx uipilot-training exchanges fold --from .uipilot/drafts/exchanges-…/draft.json ./my-app
+# review drafts/exchanges-fold-*/ — set meta.checked=true
+npx uipilot-training pack accept <draftId> ./my-app
+uipilotCLI intents check ./my-app   # gates scenarios.json (+ pack intents)
+npx uipilot-training metrics --from ex.json --misses misses.json
+```
+
+`exchanges fold` writes pack pieces **and** `scenarios.json` so operating
+`intents check` can gate promoted utterances after accept.
+
+## Authoring
+
+```bash
+npx uipilot-training map|tune|prepare ./my-app
+npx uipilot-training scenarios saturate ./my-app --fixture
+npx uipilot-training intents tune ./my-app
+npx uipilot-training ranker train ./my-app   # pack/ranker.json + ranker.onnx
+```
 
 ## Providers
 
-Set `UIPILOT_LLM_*` (see `@uipilot/llm` README): `ollama`, `openai`, `openai-compat`, `anthropic`, `huggingface`.
+Set `UIPILOT_LLM_*` (see `packages/llm/README.md`). Import from `@uipilot/llm` directly.
+
+## CI
+
+GitHub Actions checks out **both** repos, builds operating core/schema/ranker, then:
+
+```bash
+npm run ci
+```

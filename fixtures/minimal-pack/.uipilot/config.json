@@ -1,0 +1,16 @@
+{
+  "guideAttr": "data-guide-id",
+  "features": { "chat": true, "palette": true, "spotlight": true, "voice": true },
+  "paths": {
+    "inventory": "inventory.json",
+    "structuredDraft": "structured-draft.json",
+    "checklist": "checklist.json",
+    "pack": "pack/"
+  },
+  "author": {
+    "provider": null,
+    "productBlurb": "demo-todo is a tiny local shopping-list coach demo: create a list, add items, mark one done — all via on-screen buttons, no cloud.",
+    "note": "Set UIPILOT_LLM_* in env; do not put API keys in this file. Use productBlurb with scenarios ask --mode=user-ask.",
+    "onnxRanker": false
+  }
+}

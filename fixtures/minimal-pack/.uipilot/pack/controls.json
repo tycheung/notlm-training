@@ -1,0 +1,120 @@
+[
+  {
+    "id": "guide-create-list",
+    "role": "cta",
+    "stepId": "create_list",
+    "path": "guide-create-list",
+    "spotlight": "guide-create-list",
+    "draftKey": "list_draft",
+    "coachMessage": "Fill the list name if needed, then click Create list — the coach only presses this button (no API).",
+    "userFill": ["guide-list-name"]
+  },
+  {
+    "id": "guide-add-item",
+    "role": "cta",
+    "stepId": "add_item",
+    "path": "guide-add-item",
+    "spotlight": "guide-add-item",
+    "draftKey": "item_draft",
+    "coachMessage": "Fill the todo text if needed, then click Add item.",
+    "userFill": ["guide-item-text"]
+  },
+  {
+    "id": "guide-complete-item",
+    "role": "cta",
+    "stepId": "complete_item",
+    "path": "guide-complete-item",
+    "spotlight": "guide-complete-item",
+    "coachMessage": "Click Complete item to check off the first open todo."
+  },
+  {
+    "id": "guide-tab-files",
+    "role": "tab",
+    "stepId": "open_files_tab",
+    "path": "guide-tab-files",
+    "spotlight": "guide-tab-files",
+    "beforeOpen": ["guide-nav-lab"],
+    "coachMessage": "Switch to the Files tab before attaching anything."
+  },
+  {
+    "id": "guide-menu-export",
+    "role": "menu",
+    "stepId": "export_via_menu",
+    "path": "guide-menu-export",
+    "spotlight": "guide-menu-export",
+    "openMenu": "guide-menu-actions",
+    "coachMessage": "Open Actions, then choose Export."
+  },
+  {
+    "id": "guide-upload",
+    "role": "upload",
+    "stepId": "upload_attachment",
+    "path": "guide-upload",
+    "spotlight": "guide-upload",
+    "spotlightOnly": true,
+    "beforeOpen": ["guide-nav-lab", "guide-tab-files"],
+    "coachMessage": "Select a file yourself — the coach will not upload for you."
+  },
+  {
+    "id": "guide-priority",
+    "role": "combobox",
+    "stepId": "pick_priority",
+    "path": "guide-priority",
+    "spotlight": "guide-priority",
+    "spotlightOnly": true,
+    "beforeOpen": ["guide-nav-lab", "guide-tab-details"],
+    "coachMessage": "Choose a priority — I won’t auto-pick ambiguous options."
+  },
+  {
+    "id": "guide-confirm-clear",
+    "role": "dialog",
+    "stepId": "confirm_clear_lab",
+    "path": "guide-lab-clear",
+    "spotlight": "guide-confirm-clear",
+    "confirmDialog": "guide-confirm-clear",
+    "beforeOpen": ["guide-nav-lab"],
+    "coachMessage": "Confirm in the dialog to clear the lab."
+  },
+  {
+    "id": "guide-wizard-name",
+    "role": "step",
+    "stepId": "wizard_name",
+    "path": "guide-wizard-next",
+    "spotlight": "guide-wizard-name",
+    "wizardId": "lab_wizard",
+    "wizardPage": 0,
+    "beforeOpen": ["guide-nav-lab"],
+    "draftKey": "wizard_draft",
+    "userFill": ["guide-wizard-name"],
+    "coachMessage": "Name the wizard run, then continue."
+  },
+  {
+    "id": "guide-wizard-finish",
+    "role": "step",
+    "stepId": "wizard_finish",
+    "path": "guide-wizard-finish",
+    "spotlight": "guide-wizard-finish",
+    "wizardId": "lab_wizard",
+    "wizardPage": 1,
+    "beforeOpen": ["guide-nav-lab"],
+    "coachMessage": "Finish the wizard on page 2."
+  },
+  {
+    "id": "guide-lab-drawer",
+    "role": "drawer",
+    "stepId": "open_lab_drawer",
+    "path": "guide-open-drawer",
+    "openModal": "lab_drawer",
+    "spotlight": "guide-open-drawer",
+    "coachCreate": true,
+    "coachMessage": "Opening the lab drawer."
+  },
+  {
+    "id": "guide-empty-start",
+    "role": "cta",
+    "stepId": "empty_start",
+    "path": "guide-empty-start",
+    "spotlight": "guide-empty-start",
+    "coachMessage": "Get started by creating your first list."
+  }
+]

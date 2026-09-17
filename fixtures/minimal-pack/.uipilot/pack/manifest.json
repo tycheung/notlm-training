@@ -1,0 +1,13 @@
+{
+  "id": "demo-todo",
+  "version": "0.0.0",
+  "title": "Demo Todo coach (portability proof)",
+  "features": { "chat": true, "palette": true, "spotlight": true, "voice": true },
+  "files": {
+    "flow": "flow.json",
+    "controls": "controls.json",
+    "intents": "intents.json",
+    "binders": "binders.json",
+    "corpus": "corpus.json"
+  }
+}

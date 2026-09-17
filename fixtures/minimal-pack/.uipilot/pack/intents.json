@@ -1,0 +1,34 @@
+{
+  "aliases": {
+    "create_list": ["create list", "new list", "make a list", "make a new list"],
+    "add_item": ["add item", "add todo", "add an item", "add a todo"],
+    "complete_item": ["complete item", "mark done", "mark it done", "check off", "check off the task"],
+    "open_files_tab": ["open files tab", "switch to files", "show attachments tab"],
+    "export_via_menu": ["export via menu", "open export menu", "export the list"],
+    "upload_attachment": ["upload attachment", "attach a file", "upload a file"],
+    "pick_priority": ["pick priority", "set priority", "choose priority"],
+    "confirm_clear_lab": ["confirm clear lab", "clear the lab", "clear lab"],
+    "wizard_name": ["start wizard", "wizard name", "begin wizard"],
+    "wizard_finish": ["finish wizard", "wizard finish", "complete wizard"],
+    "open_lab_drawer": ["open lab drawer", "open the drawer", "show drawer"],
+    "empty_start": ["get started", "empty start", "start here"]
+  },
+  "meta": ["whats_next", "go_back", "explain_field", "help", "cancel_all", "do_it"],
+  "slots": {
+    "create_list": [
+      {
+        "key": "name",
+        "ask": "What should we name the list?",
+        "required": true
+      }
+    ],
+    "wizard_name": [
+      {
+        "key": "name",
+        "ask": "What should we name this wizard run?",
+        "required": true
+      }
+    ]
+  },
+  "confirm": ["complete_item"]
+}

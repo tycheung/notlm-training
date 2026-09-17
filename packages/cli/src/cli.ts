@@ -9,6 +9,7 @@ import {
   loadExchangesFromRaw,
   parseMissRecords,
   writeExchangeDraft,
+  writeFoldedPackDraft,
 } from '@uipilot-training/recalibrate';
 
 export function takeFlag(args: string[], name: string): string | undefined {
@@ -23,12 +24,15 @@ export function usage(): void {
   console.log(`Usage:
   uipilot-training exchanges pull --url <endpoint> [--out <path>]
   uipilot-training exchanges draft --from <file.json|jsonl> [dir]
+  uipilot-training exchanges fold --from <draft.json> [dir]
   uipilot-training metrics --from <exchanges.json> [--misses <misses.json>]
-  uipilot-training help
 
-Tuning / saturation / ranker train still live in the operating uipilotCLI
-(map|tune|prepare|ranker train) until those packages are physically moved.
-This CLI owns MissExchange recalibration (1A accept-gated drafts).
+  uipilot-training map|tune|prepare [dir] …
+  uipilot-training scenarios … | pack author|accept | intents tune | ranker train
+  uipilot-training inventory|extract|trace|annotate|jobs|checklist|dag|talk|misses …
+
+  Pack quality gates stay on operating uipilotCLI:
+  uipilotCLI validate | intents check | ranker check
 `);
 }
 
@@ -90,7 +94,37 @@ export async function cmdDraft(args: string[]): Promise<void> {
   }
   const exchanges = loadExchangesFromRaw(readFileSync(fromPath, 'utf8'));
   const outDir = writeExchangeDraft(home, exchanges);
-  console.log(`Exchange draft → ${outDir} (${exchanges.length} records) — review then pack accept`);
+  console.log(
+    `Exchange draft → ${outDir} (${exchanges.length} records) — next: exchanges fold, review, set meta.checked=true, pack accept, then uipilotCLI intents check`
+  );
+}
+
+export async function cmdFold(args: string[]): Promise<void> {
+  const fromPath = takeFlag(args, '--from');
+  if (!fromPath) {
+    console.error(
+      'Usage: uipilot-training exchanges fold --from <exchanges-*/draft.json> [dir]'
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const skip = new Set<string>();
+  for (let i = 0; i < args.length; i += 1) {
+    const a = args[i]!;
+    if (a === '--from') {
+      skip.add(a);
+      if (args[i + 1]) skip.add(args[i + 1]!);
+    } else if (a.startsWith('--from=')) skip.add(a);
+  }
+  const dir = args.find((a) => !a.startsWith('-') && !skip.has(a)) ?? process.cwd();
+  const home = join(dir, '.uipilot');
+  if (!existsSync(home)) {
+    mkdirSync(join(home, 'drafts'), { recursive: true });
+  }
+  const outDir = writeFoldedPackDraft(home, fromPath);
+  console.log(
+    `Folded pack draft → ${outDir} — review, set meta.checked=true, pack accept, then uipilotCLI intents check`
+  );
 }
 
 export async function cmdMetrics(args: string[]): Promise<void> {
@@ -118,9 +152,15 @@ export async function runCli(argv: string[]): Promise<void> {
   try {
     if (cmd === 'exchanges' && sub === 'pull') await cmdPull(rest);
     else if (cmd === 'exchanges' && sub === 'draft') await cmdDraft(rest);
+    else if (cmd === 'exchanges' && sub === 'fold') await cmdFold(rest);
     else if (cmd === 'metrics') await cmdMetrics(argv.slice(1));
     else if (cmd === 'help' || cmd === '--help' || !cmd) usage();
     else {
+      const { isFatCommand, runFatCli } = await import('./fatDispatch.js');
+      if (isFatCommand(cmd, sub)) {
+        await runFatCli(argv);
+        return;
+      }
       console.error(`Unknown command: ${cmd} ${sub ?? ''}`.trim());
       usage();
       process.exitCode = 1;

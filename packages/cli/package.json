@@ -8,8 +8,14 @@
   "main": "./dist/cli.js",
   "files": ["dist"],
   "dependencies": {
+    "@uipilot/author": "*",
+    "@uipilot/codegen": "*",
     "@uipilot/core": "*",
+    "@uipilot/llm": "*",
+    "@uipilot/mapper": "*",
+    "@uipilot/ranker": "*",
     "@uipilot/schema": "*",
+    "@uipilot-training/ranker-train": "*",
     "@uipilot-training/recalibrate": "*"
   },
   "scripts": { "build": "tsc -b" },

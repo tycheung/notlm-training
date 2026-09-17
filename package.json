@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@uipilot/core": "file:../uipilot/packages/core",
-    "@uipilot/schema": "file:../uipilot/packages/schema"
+    "@uipilot/schema": "file:../uipilot/packages/schema",
+    "@uipilot/ranker": "file:../uipilot/packages/ranker"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -12,8 +12,7 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@uipilot/core": "*",
-    "@uipilot/schema": "*"
+    "@uipilot/core": "*"
   },
   "scripts": { "build": "tsc -b" }
 }

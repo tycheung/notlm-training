@@ -1,0 +1,67 @@
+[
+  {
+    "id": "s1-create-list",
+    "utterance": "create a list",
+    "expect": { "stepId": "create_list" }
+  },
+  {
+    "id": "s2-new-list",
+    "utterance": "make a new list",
+    "expect": { "stepId": "create_list" }
+  },
+  {
+    "id": "s3-add-item",
+    "utterance": "add an item",
+    "expect": { "stepId": "add_item" }
+  },
+  {
+    "id": "s4-add-todo",
+    "utterance": "add a todo",
+    "expect": { "stepId": "add_item" }
+  },
+  {
+    "id": "s5-complete",
+    "utterance": "mark it done",
+    "expect": { "stepId": "complete_item" }
+  },
+  {
+    "id": "s6-complete-item",
+    "utterance": "complete item",
+    "expect": { "stepId": "complete_item" }
+  },
+  {
+    "id": "s7-whats-next",
+    "utterance": "what's next",
+    "expect": { "rawIntent": "whats_next" }
+  },
+  {
+    "id": "s8-go-back",
+    "utterance": "go back",
+    "expect": { "goBack": true }
+  },
+  {
+    "id": "s9-negative",
+    "utterance": "what's the weather",
+    "expect": { "stepId": null }
+  },
+  {
+    "id": "s10-check-off",
+    "utterance": "check off the task",
+    "expect": { "stepId": "complete_item" }
+  },
+  {
+    "id": "s11-stt-create-lis",
+    "utterance": "create lis",
+    "expect": { "stepId": "create_list" }
+  },
+  {
+    "id": "s12-stt-add-ite",
+    "utterance": "add ite",
+    "expect": { "stepId": "add_item" }
+  },
+  {
+    "id": "s13-stt-complete-ite",
+    "utterance": "complete ite",
+    "expect": { "stepId": "complete_item" }
+  }
+]

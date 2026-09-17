@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout uipilot-training
+        uses: actions/checkout@v4
+        with:
+          path: uipilot-training
+
+      - name: Checkout sibling uipilot
+        uses: actions/checkout@v4
+        with:
+          repository: tycheung/uipilot
+          path: uipilot
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            uipilot/package-lock.json
+            uipilot-training/package-lock.json
+
+      - name: Build operating runtime deps (file: links)
+        working-directory: uipilot
+        run: |
+          npm ci
+          npm run build -w @uipilot/core -w @uipilot/schema -w @uipilot/ranker
+
+      - name: Training CI
+        working-directory: uipilot-training
+        run: |
+          npm ci
+          npm run ci
