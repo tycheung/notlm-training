@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { validateMissExchangeList } from '@uipilot/schema';
 import {
   computeTrafficMetrics,
@@ -10,7 +11,7 @@ import {
   writeExchangeDraft,
 } from '@uipilot-training/recalibrate';
 
-function takeFlag(args: string[], name: string): string | undefined {
+export function takeFlag(args: string[], name: string): string | undefined {
   const eq = args.findIndex((a) => a.startsWith(`${name}=`));
   if (eq >= 0) return args[eq]!.slice(name.length + 1);
   const idx = args.findIndex((a) => a === name);
@@ -18,7 +19,7 @@ function takeFlag(args: string[], name: string): string | undefined {
   return undefined;
 }
 
-function usage(): void {
+export function usage(): void {
   console.log(`Usage:
   uipilot-training exchanges pull --url <endpoint> [--out <path>]
   uipilot-training exchanges draft --from <file.json|jsonl> [dir]
@@ -31,7 +32,7 @@ This CLI owns MissExchange recalibration (1A accept-gated drafts).
 `);
 }
 
-async function cmdPull(args: string[]): Promise<void> {
+export async function cmdPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
   if (!url) {
     console.error('Usage: uipilot-training exchanges pull --url <endpoint> [--out <path>]');
@@ -67,7 +68,7 @@ async function cmdPull(args: string[]): Promise<void> {
   }
 }
 
-async function cmdDraft(args: string[]): Promise<void> {
+export async function cmdDraft(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error('Usage: uipilot-training exchanges draft --from <file> [dir]');
@@ -92,7 +93,7 @@ async function cmdDraft(args: string[]): Promise<void> {
   console.log(`Exchange draft → ${outDir} (${exchanges.length} records) — review then pack accept`);
 }
 
-async function cmdMetrics(args: string[]): Promise<void> {
+export async function cmdMetrics(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
@@ -110,8 +111,7 @@ async function cmdMetrics(args: string[]): Promise<void> {
   console.log(JSON.stringify(metrics, null, 2));
 }
 
-async function main(): Promise<void> {
-  const argv = process.argv.slice(2);
+export async function runCli(argv: string[]): Promise<void> {
   const cmd = argv[0];
   const sub = argv[1];
   const rest = argv.slice(2);
@@ -131,4 +131,7 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+const entry = process.argv[1];
+if (entry && import.meta.url === pathToFileURL(entry).href) {
+  void runCli(process.argv.slice(2));
+}
