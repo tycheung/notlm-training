@@ -1,0 +1,21 @@
+{
+  "name": "@uipilot-training/ranker-train",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@uipilot/core": "*",
+    "@uipilot/ranker": "*"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}
