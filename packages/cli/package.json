@@ -1,0 +1,19 @@
+{
+  "name": "@uipilot-training/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "uipilot-training": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": ["dist"],
+  "dependencies": {
+    "@uipilot/core": "*",
+    "@uipilot/schema": "*",
+    "@uipilot-training/recalibrate": "*"
+  },
+  "scripts": { "build": "tsc -b" },
+  "devDependencies": {
+    "@types/node": "^22.10.0"
+  }
+}

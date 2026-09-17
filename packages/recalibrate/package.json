@@ -1,0 +1,19 @@
+{
+  "name": "@uipilot-training/recalibrate",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@uipilot/core": "*",
+    "@uipilot/schema": "*"
+  },
+  "scripts": { "build": "tsc -b" }
+}

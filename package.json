@@ -1,0 +1,26 @@
+{
+  "name": "uipilot-training",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "UiPilot offline tune/train — MissExchange recalibration (not runtime)",
+  "engines": { "node": ">=20" },
+  "bin": {
+    "uipilot-training": "./packages/cli/dist/cli.js"
+  },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "uipilot-training": "node packages/cli/dist/cli.js"
+  },
+  "dependencies": {
+    "@uipilot/core": "file:../uipilot/packages/core",
+    "@uipilot/schema": "file:../uipilot/packages/schema"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
