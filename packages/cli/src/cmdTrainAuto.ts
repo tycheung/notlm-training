@@ -126,8 +126,8 @@ function rebuildPackIo(home: string): PackIO {
       return {
         ok: true,
         draftId,
-        // Until-soft-cap stops only once both pack budgets are filled.
-        softCapHit: mergedResult.softCapHit && faqMerged.softCapHit,
+        // Stop when either pack-total soft budget is filled.
+        softCapHit: mergedResult.softCapHit || faqMerged.softCapHit,
       };
     },
     retrainRanker: async () => {
