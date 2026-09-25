@@ -93,3 +93,64 @@ export { detectClashes, clashDensity, type ClashGroup } from './detectClashes.js
 
 export { draftConversationalCopy } from './draftTalk.js';
 export type { DraftTalkResult } from './draftTalk.js';
+
+export {
+  TRAIN_AUTO_ACTIONS,
+  type TrainAutoAction,
+  type TrainAutoPlan,
+  type EvalItem,
+  type EvalExpectation,
+  type RollingEvalState,
+  type TrainAutoConfig,
+  type TrainAutoReport,
+  type TrainAutoControl,
+  type TrainAutoControlState,
+} from './trainAuto/types.js';
+export {
+  deriveWindowSize,
+  wilsonLowerBound,
+  emptyRollingState,
+  appendEvalItems,
+  scoreRolling,
+} from './trainAuto/stats.js';
+export {
+  hashEmbed,
+  cosineSimilarity,
+  diversityGate,
+  loadVectorStore,
+  saveVectorStore,
+  appendToVectorStore,
+  vectorsPath,
+} from './trainAuto/diversity.js';
+export {
+  readControl,
+  writeControl,
+  ensureTrainAutoDir,
+  waitWhilePaused,
+  controlPath,
+} from './trainAuto/control.js';
+export {
+  deriveWorkerCount,
+  mapPool,
+  withinBudget,
+  snapshotResources,
+} from './trainAuto/resources.js';
+export { makeEvalItem, scoreUtterance } from './trainAuto/evalUtterance.js';
+export {
+  collectInventoryGuideIds,
+  guardDagMutation,
+} from './trainAuto/dagGuard.js';
+export {
+  buildPlannerPrompt,
+  parsePlannerResponse,
+  planNextAction,
+  fixturePlan,
+} from './trainAuto/planner.js';
+export {
+  runTrainAuto,
+  resolveTrainAutoConfig,
+  mergeAliasesIntoIntents,
+  writeAcceptDraft,
+  type PackIO,
+  type RunTrainAutoInput,
+} from './trainAuto/loop.js';

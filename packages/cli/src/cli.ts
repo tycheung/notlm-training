@@ -34,6 +34,10 @@ export function usage(): void {
   uipilot-training scenarios … | pack author|accept | intents tune | ranker train
   uipilot-training inventory|extract|trace|annotate|jobs|checklist|dag|talk|misses …
 
+  uipilot-training train auto [dir] [--pass-rate=0.99] [--confidence=0.99] [--window=N]
+                              [--max-cpu=0.8] [--max-ram=0.8] [--workers=N] [--fixture] [--resume]
+  uipilot-training train pause|resume|stop [dir]
+
   Pack quality gates stay on operating uipilotCLI:
   uipilotCLI validate | intents check | ranker check
 `);

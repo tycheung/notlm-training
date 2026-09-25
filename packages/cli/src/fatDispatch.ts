@@ -29,6 +29,12 @@ import {
   cmdMissesExport,
   cmdMissesPull,
 } from './cmdMisses.js';
+import {
+  cmdTrainAuto,
+  cmdTrainPause,
+  cmdTrainResume,
+  cmdTrainStop,
+} from './cmdTrainAuto.js';
 
 const FAT_TOP = new Set([
   'inventory',
@@ -45,12 +51,18 @@ const FAT_TOP = new Set([
   'prepare',
   'talk',
   'misses',
+  'train',
 ]);
 
 export function isFatCommand(cmd: string | undefined, sub?: string): boolean {
   if (!cmd) return false;
   if (FAT_TOP.has(cmd)) {
     if (cmd === 'pack') return sub === 'author' || sub === 'accept';
+    if (cmd === 'train') {
+      return (
+        sub === 'auto' || sub === 'pause' || sub === 'resume' || sub === 'stop'
+      );
+    }
     return true;
   }
   if (cmd === 'intents' && sub === 'tune') return true;
@@ -130,6 +142,13 @@ export async function runFatCli(argv: string[]): Promise<void> {
       else if (sub === 'pull') await cmdMissesPull(rest);
       else if (sub === 'draft-aliases') await cmdMissesDraftAliases(rest);
       else throw new Error('Usage: misses export|pull|draft-aliases …');
+      break;
+    case 'train':
+      if (sub === 'auto') await cmdTrainAuto(rest);
+      else if (sub === 'pause') await cmdTrainPause(rest);
+      else if (sub === 'resume') await cmdTrainResume(rest);
+      else if (sub === 'stop') await cmdTrainStop(rest);
+      else throw new Error('Usage: train auto|pause|resume|stop …');
       break;
     default:
       throw new Error(`Not a fat command: ${cmd}`);

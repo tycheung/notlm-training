@@ -26,6 +26,8 @@ export default defineConfig({
         'packages/author/src/draftTalk.ts',
         'packages/author/src/parseModelJson.ts',
         'packages/author/src/index.ts',
+        'packages/author/src/trainAuto/loop.ts',
+        'packages/author/src/trainAuto/generate.ts',
       ],
       thresholds: {
         lines: 85,

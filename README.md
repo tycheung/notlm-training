@@ -44,6 +44,25 @@ npx uipilot-training metrics --from ex.json --misses misses.json
 `exchanges fold` writes pack pieces **and** `scenarios.json` so operating
 `intents check` can gate promoted utterances after accept.
 
+## Autonomous train auto
+
+Unattended planner that invents the next training action, diversity-gates
+candidates (hashed vectors + lexical novelty), may propose inventory-backed DAG
+edits, and iterates until a rolling-window pass rate / confidence bar is met.
+
+```bash
+# Defaults: pass-rate=0.99 confidence=0.99 → window 459; max CPU/RAM 80%
+npx uipilot-training train auto ./my-app
+npx uipilot-training train auto ./my-app --fixture --window=20 --pass-rate=0.9
+npx uipilot-training train pause ./my-app
+npx uipilot-training train resume ./my-app
+npx uipilot-training train stop ./my-app
+```
+
+BYO model via `UIPILOT_LLM_*` (ollama / openai / openai-compat / anthropic /
+huggingface). State lives under `.uipilot/train-auto/` (`control.json`,
+`rolling.json`, `vectors.json`, `report.json`). SIGINT pauses.
+
 ## Conversation analyze (hits + misses)
 
 Runtime hosts can log full chat transcripts as `ConversationTurn` /
