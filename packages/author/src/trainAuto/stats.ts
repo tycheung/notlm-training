@@ -95,10 +95,10 @@ export function scoreRolling(state: RollingEvalState): RollingEvalState {
   const lastPassRate = successes / slice.length;
   const wilsonLower = wilsonLowerBound(successes, slice.length, state.confidence);
   const full = slice.length >= state.window;
-  const derived = deriveWindowSize(state.passRate, state.confidence);
-  // Small overridden windows: pass-rate only. Full statistical windows: also Wilson LB.
-  const wilsonOk =
-    state.window < derived ? true : wilsonLower >= state.passRate;
-  const met = full && lastPassRate >= state.passRate && wilsonOk;
+  const maxFails = Math.floor((1 - state.passRate) * state.window + 1e-9);
+  const failures = slice.length - successes;
+  // Observed pass-rate gate on a full window. Wilson LB is reported for diagnostics;
+  // requiring wilsonLower >= passRate is impossible at 99%/99%/n=459 even with 0 failures.
+  const met = full && lastPassRate >= state.passRate && failures <= maxFails;
   return { ...state, lastPassRate, wilsonLower, met };
 }
