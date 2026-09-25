@@ -1,4 +1,4 @@
-export { buildIntentTunePrompt, buildPackAuthorPrompt } from './prompts.js';
+export { buildConversationAnalyzePrompt, buildIntentTunePrompt, buildPackAuthorPrompt } from './prompts.js';
 export {
   extractJsonText,
   parseModelJson,
@@ -14,6 +14,15 @@ export type { AuthorPackDraftResult, PackDraftPieces } from './packAuthor.js';
 
 export { tuneIntents } from './intentsTune.js';
 export type { TuneIntentsResult } from './intentsTune.js';
+
+export {
+  analyzeConversations,
+  fixtureConversationProposal,
+} from './conversationAnalyze.js';
+export type {
+  AnalyzeConversationsResult,
+  ConversationAnalyzeProposal,
+} from './conversationAnalyze.js';
 
 export {
   DEFAULT_PLATEAU_CONFIG,

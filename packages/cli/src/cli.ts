@@ -27,6 +27,9 @@ export function usage(): void {
   uipilot-training exchanges fold --from <draft.json> [dir]
   uipilot-training metrics --from <exchanges.json> [--misses <misses.json>]
 
+  uipilot-training conversations pull --url <endpoint> [--out <path>]
+  uipilot-training conversations analyze --from <conv.json> [dir] [--mode=review|auto] [--fixture]
+
   uipilot-training map|tune|prepare [dir] …
   uipilot-training scenarios … | pack author|accept | intents tune | ranker train
   uipilot-training inventory|extract|trace|annotate|jobs|checklist|dag|talk|misses …
@@ -153,7 +156,13 @@ export async function runCli(argv: string[]): Promise<void> {
     if (cmd === 'exchanges' && sub === 'pull') await cmdPull(rest);
     else if (cmd === 'exchanges' && sub === 'draft') await cmdDraft(rest);
     else if (cmd === 'exchanges' && sub === 'fold') await cmdFold(rest);
-    else if (cmd === 'metrics') await cmdMetrics(argv.slice(1));
+    else if (cmd === 'conversations' && sub === 'pull') {
+      const { cmdConversationsPull } = await import('./cmdConversations.js');
+      await cmdConversationsPull(rest);
+    } else if (cmd === 'conversations' && sub === 'analyze') {
+      const { cmdConversationsAnalyze } = await import('./cmdConversations.js');
+      await cmdConversationsAnalyze(rest);
+    } else if (cmd === 'metrics') await cmdMetrics(argv.slice(1));
     else if (cmd === 'help' || cmd === '--help' || !cmd) usage();
     else {
       const { isFatCommand, runFatCli } = await import('./fatDispatch.js');

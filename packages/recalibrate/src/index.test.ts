@@ -8,6 +8,7 @@ import {
   computeTrafficMetrics,
   loadExchangesFromJson,
   loadExchangesFromRaw,
+  writeConversationFoldDraft,
   writeExchangeDraft,
   writeFoldedPackDraft,
 } from './index.js';
@@ -186,5 +187,46 @@ describe('recalibrate', () => {
     ) as Array<{ utterance: string; expect: { stepId: string | null } }>;
     expect(scenarios.some((s) => s.utterance === 'make a tourney')).toBe(true);
     expect(scenarios.some((s) => s.expect.stepId === null)).toBe(true);
+  });
+
+  it('writeConversationFoldDraft supports review and auto checked flags', () => {
+    const home = mkdtempSync(join(tmpdir(), 'uipilot-conv-'));
+    mkdirSync(join(home, 'pack'), { recursive: true });
+    writeFileSync(
+      join(home, 'pack', 'intents.json'),
+      JSON.stringify({ aliases: { create_list: ['new list'] } }),
+      'utf8'
+    );
+    writeFileSync(join(home, 'pack', 'faq.json'), '[]', 'utf8');
+    writeFileSync(join(home, 'pack', 'corpus.json'), '[]', 'utf8');
+
+    const review = writeConversationFoldDraft(
+      home,
+      {
+        proposedAliases: { create_list: ['make list please'] },
+        proposedFaq: [],
+        proposedCorpus: [
+          { utterance: 'make list please', expect: { stepId: 'create_list' } },
+        ],
+      },
+      { checked: false }
+    );
+    const reviewMeta = JSON.parse(readFileSync(join(review.foldDir, 'meta.json'), 'utf8'));
+    expect(reviewMeta.kind).toBe('conversations-fold');
+    expect(reviewMeta.checked).toBe(false);
+
+    const auto = writeConversationFoldDraft(
+      home,
+      {
+        proposedAliases: { create_list: ['build a list'] },
+        proposedFaq: [{ id: 'f1', aliases: ['what is list'], text: 'A checklist step.' }],
+        proposedCorpus: [{ utterance: 'nope', expect: { stepId: null } }],
+      },
+      { checked: true }
+    );
+    const autoMeta = JSON.parse(readFileSync(join(auto.foldDir, 'meta.json'), 'utf8'));
+    expect(autoMeta.checked).toBe(true);
+    const intents = JSON.parse(readFileSync(join(auto.foldDir, 'intents.json'), 'utf8'));
+    expect(intents.aliases.create_list).toContain('build a list');
   });
 });

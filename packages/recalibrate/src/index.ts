@@ -1,5 +1,6 @@
 import type { MissExchange, MissProposed } from '@uipilot/core';
 import {
+  normalizeConversationsDump,
   normalizeMissExchangeList,
   parseMissExchanges,
   parseMissRecords,
@@ -136,9 +137,9 @@ export type FoldedPackPieces = {
   scenarios: CorpusCase[];
   meta: {
     id: string;
-    kind: 'exchanges-fold';
+    kind: 'exchanges-fold' | 'conversations-fold';
     createdAt: string;
-    checked: false;
+    checked: boolean;
     source?: string;
   };
 };
@@ -181,6 +182,8 @@ export function foldExchangeDraft(
     currentScenarios?: CorpusCase[];
     draftId?: string;
     sourcePath?: string;
+    kind?: 'exchanges-fold' | 'conversations-fold';
+    checked?: boolean;
   }
 ): FoldedPackPieces {
   const currentIntents = (opts?.currentIntents ?? { aliases: {} }) as IntentsPiece;
@@ -261,9 +264,9 @@ export function foldExchangeDraft(
     scenarios,
     meta: {
       id: draftId,
-      kind: 'exchanges-fold',
+      kind: opts?.kind ?? 'exchanges-fold',
       createdAt: new Date().toISOString(),
-      checked: false,
+      checked: opts?.checked ?? false,
       ...(opts?.sourcePath ? { source: opts.sourcePath } : {}),
     },
   };
@@ -315,6 +318,100 @@ export function writeFoldedPackDraft(
   );
   writeFileSync(join(outDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
   return outDir;
+}
+
+export type ConversationProposalDraft = {
+  note?: string;
+  proposedAliases: Record<string, string[]>;
+  proposedFaq: Array<{ id: string; aliases: string[]; text: string; stepId?: string }>;
+  proposedCorpus: Array<{ utterance: string; expect: { stepId: string | null } }>;
+  conversations?: unknown;
+};
+
+/** Write analysis proposal + folded pack draft under `.uipilot/drafts/`. */
+export function writeConversationFoldDraft(
+  homeDir: string,
+  proposal: ConversationProposalDraft,
+  opts?: { checked?: boolean; packDir?: string }
+): { proposalDir: string; foldDir: string; draftId: string } {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const proposalDir = join(homeDir, 'drafts', `conversations-${stamp}`);
+  mkdirSync(proposalDir, { recursive: true });
+  const draft: ExchangeDraftJson = {
+    note:
+      proposal.note ??
+      'Conversation analyze: review fold draft then pack accept (or --mode=auto).',
+    buckets: {
+      faqCount: proposal.proposedFaq.length,
+      gotoSteps: Object.fromEntries(
+        Object.entries(proposal.proposedAliases).map(([k, v]) => [k, v.length])
+      ),
+      metaCount: 0,
+      refuseCount: 0,
+      unlabeledCount: 0,
+    },
+    proposedAliases: proposal.proposedAliases,
+    proposedFaq: proposal.proposedFaq,
+    proposedCorpus: proposal.proposedCorpus,
+    exchanges: [],
+  };
+  writeFileSync(join(proposalDir, 'draft.json'), `${JSON.stringify({ ...draft, conversations: proposal.conversations }, null, 2)}\n`);
+
+  const pack = opts?.packDir ?? join(homeDir, 'pack');
+  const currentIntents = readJsonIfExists<IntentsPiece>(join(pack, 'intents.json'), {
+    aliases: {},
+  });
+  const currentFaq = readJsonIfExists<FaqEntry[]>(join(pack, 'faq.json'), []);
+  const currentCorpus = readJsonIfExists<CorpusCase[]>(join(pack, 'corpus.json'), []);
+  const currentScenarios = readJsonIfExists<CorpusCase[]>(
+    join(homeDir, 'scenarios.json'),
+    []
+  );
+
+  const draftId = `conversations-fold-${stamp}`;
+  const folded = foldExchangeDraft(draft, {
+    currentIntents,
+    currentFaq: Array.isArray(currentFaq) ? currentFaq : [],
+    currentCorpus: Array.isArray(currentCorpus) ? currentCorpus : [],
+    currentScenarios: Array.isArray(currentScenarios) ? currentScenarios : [],
+    draftId,
+    sourcePath: join(proposalDir, 'draft.json'),
+    kind: 'conversations-fold',
+    checked: opts?.checked ?? false,
+  });
+
+  const foldDir = join(homeDir, 'drafts', draftId);
+  mkdirSync(foldDir, { recursive: true });
+  writeFileSync(join(foldDir, 'intents.json'), `${JSON.stringify(folded.intents, null, 2)}\n`);
+  writeFileSync(join(foldDir, 'faq.json'), `${JSON.stringify(folded.faq, null, 2)}\n`);
+  writeFileSync(join(foldDir, 'corpus.json'), `${JSON.stringify(folded.corpus, null, 2)}\n`);
+  writeFileSync(
+    join(foldDir, 'scenarios.json'),
+    `${JSON.stringify(folded.scenarios, null, 2)}\n`
+  );
+  writeFileSync(join(foldDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
+  return { proposalDir, foldDir, draftId };
+}
+
+export function loadConversationsFromRaw(raw: string): import('@uipilot/core').ConversationRecord[] {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    return normalizeConversationsDump(JSON.parse(trimmed) as unknown);
+  }
+  // JSONL of records or turns
+  const lines = trimmed
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as unknown);
+  return normalizeConversationsDump(lines);
+}
+
+export function loadConversationsFromJson(
+  data: unknown
+): import('@uipilot/core').ConversationRecord[] {
+  return normalizeConversationsDump(data);
 }
 
 export type TrafficMetrics = {

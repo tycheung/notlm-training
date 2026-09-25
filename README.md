@@ -9,7 +9,7 @@ is the only place that documents both sides.
 |---------|------|
 | Runtime (`@uipilot/core`, `@uipilot/react`, schema, ranker **infer**) | sibling [`uipilot`](../uipilot) |
 | Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `uipilot` thin `uipilotCLI` |
-| Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, ranker **train** + ONNX export | **this repo** |
+| Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, conversation analyze, ranker **train** + ONNX export | **this repo** |
 
 **Sibling required:** root deps are `file:../uipilot/packages/{core,schema,ranker}`.
 Clone beside `uipilot`, build operating packages first, then install/build here.
@@ -43,6 +43,26 @@ npx uipilot-training metrics --from ex.json --misses misses.json
 
 `exchanges fold` writes pack pieces **and** `scenarios.json` so operating
 `intents check` can gate promoted utterances after accept.
+
+## Conversation analyze (hits + misses)
+
+Runtime hosts can log full chat transcripts as `ConversationTurn` /
+`ConversationRecord` dumps (see operating `ARCHITECTURE.md`). Training analyzes
+those flows with an LLM and proposes intent aliases / FAQ / corpus:
+
+```bash
+npx uipilot-training conversations pull --url …/conversations --out conv.json
+npx uipilot-training conversations analyze --from conv.json ./my-app --mode=review
+# review drafts/conversations-fold-*/ — set meta.checked=true
+npx uipilot-training pack accept <draftId> ./my-app
+uipilotCLI intents check ./my-app
+```
+
+`--mode=auto` writes the fold draft with `meta.checked=true` and runs `pack accept`
+immediately (still validates step ids; never promotes `_unknown_step` as aliases).
+Use `--fixture` for CI without an LLM.
+
+MissExchange Learning Mode loop above remains available for single-turn train windows.
 
 ## Authoring
 

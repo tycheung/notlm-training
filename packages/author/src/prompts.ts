@@ -60,3 +60,38 @@ export function buildIntentTunePrompt(input: {
   }
   return parts.join('\n');
 }
+
+export function buildConversationAnalyzePrompt(input: {
+  conversations: unknown;
+  flowSteps: unknown;
+  currentIntents?: unknown;
+  currentFaq?: unknown;
+}): string {
+  const parts = [
+    'You analyze full UiPilot coach conversations (hits and misses) to improve intent classification.',
+    'Each conversation has conversationId and turns with role, text, outcome (hit|miss|blocked|confirm|slot_ask|adapter), stepId, missKind.',
+    'Propose pack updates from patterns across the full flow — not single Q/A pairs alone.',
+    'Respond with a single JSON object only (no markdown prose) shaped as:',
+    '{ "proposedAliases": { "exact_step_id": ["utterance", ...] },',
+    '  "proposedFaq": [ { "id": "faq-1", "aliases": ["question"], "text": "answer", "stepId?: "optional" } ],',
+    '  "proposedCorpus": [ { "utterance": "…", "expect": { "stepId": "exact_step_id_or_null" } } ],',
+    '  "notes": "brief analysis of hit vs miss patterns" }',
+    'Rules:',
+    '- proposedAliases keys MUST be exact step ids from flowSteps (unknown → put under "_unknown_step" or corpus stepId null).',
+    '- Prefer promoting successful hit utterances as aliases for their stepId.',
+    '- Misses may become aliases only when the intended step is clear from later turns in the SAME conversation.',
+    '- Refuse / blocked / unclear → corpus with stepId null; never invent step ids.',
+    '- Do not invent secrets or product API calls.',
+    '',
+    jsonBlock('flowSteps', input.flowSteps),
+    '',
+    jsonBlock('conversations', input.conversations),
+  ];
+  if (input.currentIntents !== undefined) {
+    parts.push('', jsonBlock('currentIntents', input.currentIntents));
+  }
+  if (input.currentFaq !== undefined) {
+    parts.push('', jsonBlock('currentFaq', input.currentFaq));
+  }
+  return parts.join('\n');
+}
