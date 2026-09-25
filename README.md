@@ -52,6 +52,9 @@ Defaults: pass-rate/confidence 0.99 → window 459; max CPU/RAM 80%. BYO model v
 `UIPILOT_LLM_*`. State: `.uipilot/train-auto/`. Also seeds `e2e-scenarios.json` and
 `drafts/glossary-from-controls.json` when missing.
 
+Runtime decisions stay **System One** (calibrated ranker/rules); LLM growth stays
+offline in `feedback` / soft-label authoring.
+
 ### 2) `feedback` — chat / miss logs → targeted fix
 
 ```bash

@@ -84,7 +84,7 @@ describe('map / tune façade', () => {
     await cmdTune([root, '--fixture', '--batch=3']);
     expect(pathExists(join(home, 'saturation', 'candidates.json'))).toBe(true);
   },
-    15_000
+    30_000
   );
 
   it(

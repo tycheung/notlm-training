@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import {
   examplesFromCorpus,
   exportIntentOnnx,
+  formatCalibrationSummary,
+  reportRankerCalibration,
   trainRanker,
 } from '@uipilot-training/ranker-train';
 import type { RankerModelJson } from '@uipilot/ranker';
@@ -75,4 +77,6 @@ export async function cmdRankerTrain(args: string[]): Promise<void> {
     console.log(`Wrote ${jsonPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`);
   }
   console.log('Enable at runtime: features.onnxRanker=true or UIPILOT_ONNX_RANKER=1');
+  const cal = reportRankerCalibration(model, labeled, { minProbability: 0.35 });
+  console.log(formatCalibrationSummary(cal));
 }

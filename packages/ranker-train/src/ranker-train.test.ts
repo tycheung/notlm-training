@@ -5,7 +5,7 @@ import {
   evaluateRankerSoftScore,
   inferRankerJson,
 } from '@uipilot/ranker';
-import { examplesFromCorpus, exportIntentOnnx, trainRanker } from './index.js';
+import { examplesFromCorpus, exportIntentOnnx, reportRankerCalibration, trainRanker } from './index.js';
 
 const corpus: ScenarioCase[] = [
   { utterance: 'create a list', expect: { stepId: 'create_list' } },
@@ -99,5 +99,26 @@ describe('ranker train + export', () => {
     expect(result.total).toBe(evalCorpus.length);
     expect(result.hitRate).toBeGreaterThanOrEqual(0.75);
     expect(result.ok).toBe(true);
+  });
+
+  it('reportRankerCalibration returns band metrics and ECE', () => {
+    const evalCorpus = corpus.filter(
+      (c) => !('stepId' in c.expect && c.expect.stepId === null)
+    );
+    const model = trainRanker(examplesFromCorpus(evalCorpus, pack.aliases), {
+      dim: 64,
+      epochs: 80,
+      seed: 7,
+    });
+    const report = reportRankerCalibration(model, evalCorpus, {
+      minProbability: 0.25,
+    });
+    expect(report.total).toBe(evalCorpus.length);
+    expect(report.bands.high.total + report.bands.mid.total + report.bands.low.total).toBe(
+      evalCorpus.length
+    );
+    expect(report.ece).not.toBeNull();
+    expect(report.ece!).toBeGreaterThanOrEqual(0);
+    expect(report.thresholds.highMin).toBeGreaterThan(report.thresholds.midMin);
   });
 });
