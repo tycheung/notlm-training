@@ -118,7 +118,9 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
   const workersRaw = parseFlag(args, '--workers');
   const maxIterRaw = parseFlag(args, '--max-iterations');
   const fixture =
-    hasFlag(args, '--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+    hasFlag(args, '--fixture') ||
+    process.env.UIPILOT_SATURATE_FIXTURE === '1' ||
+    process.env.UIPILOT_TRAIN_AUTO_FIXTURE === '1';
   const resume = hasFlag(args, '--resume');
 
   const config = resolveTrainAutoConfig({

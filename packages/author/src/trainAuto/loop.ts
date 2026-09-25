@@ -23,7 +23,7 @@ import {
 } from './control.js';
 import { makeEvalItem } from './evalUtterance.js';
 import { fixtureGenerateBatch, llmGenerateBatch, type GeneratedCandidate } from './generate.js';
-import { planNextAction } from './planner.js';
+import { planNextAction, preferTuneBeforeEval } from './planner.js';
 import { deriveWorkerCount, mapPool, withinBudget } from './resources.js';
 import {
   appendEvalItems,
@@ -109,8 +109,9 @@ export function resolveTrainAutoConfig(partial: Partial<TrainAutoConfig> & {
     fixture: partial.fixture ?? false,
     resume: partial.resume ?? false,
     maxIterations: partial.maxIterations ?? 10_000,
-    diversityMaxSimilarity: partial.diversityMaxSimilarity ?? 0.92,
-    diversityMinLexicalNovelty: partial.diversityMinLexicalNovelty ?? 0.15,
+    diversityMaxSimilarity: partial.diversityMaxSimilarity ?? (partial.fixture ? 0.98 : 0.92),
+    diversityMinLexicalNovelty:
+      partial.diversityMinLexicalNovelty ?? (partial.fixture ? 0.08 : 0.15),
   };
 }
 
@@ -243,7 +244,7 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
       const pack = input.packIo.asIntentPack(files);
       if (!pack) throw new Error('pack disappeared');
 
-      const plan = await planNextAction({
+      const planRaw = await planNextAction({
         provider: input.provider,
         fixture: config.fixture,
         iteration: iterations,
@@ -251,6 +252,8 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
         rolling,
         lastActions,
       });
+      const pendingPositives = pending.candidates.filter((c) => c.expectStepId).length;
+      const plan = preferTuneBeforeEval(planRaw, pendingPositives);
       lastActions.push(plan.action);
       if (lastActions.length > 40) lastActions.splice(0, lastActions.length - 40);
       log(`#${iterations} plan=${plan.action} — ${plan.rationale}`);

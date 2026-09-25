@@ -105,3 +105,20 @@ export function fixturePlan(iteration: number, rolling: RollingEvalState): Train
   }
   return { action: 'eval', rationale: 'fixture: score rolling window' };
 }
+
+/**
+ * Prefer tune before eval when pending positives exist — eval-without-tune
+ * tanks the rolling pass rate.
+ */
+export function preferTuneBeforeEval(
+  plan: TrainAutoPlan,
+  pendingPositives: number
+): TrainAutoPlan {
+  if (plan.action === 'eval' && pendingPositives > 0) {
+    return {
+      action: 'tune',
+      rationale: `override: ${pendingPositives} pending positives need tune before eval`,
+    };
+  }
+  return plan;
+}

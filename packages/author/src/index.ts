@@ -145,6 +145,7 @@ export {
   parsePlannerResponse,
   planNextAction,
   fixturePlan,
+  preferTuneBeforeEval,
 } from './trainAuto/planner.js';
 export {
   runTrainAuto,
