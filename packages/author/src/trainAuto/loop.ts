@@ -126,28 +126,30 @@ function seedFromScenarios(
     const row = scenarios[i] as Record<string, unknown>;
     const utterance = typeof row.utterance === 'string' ? row.utterance : null;
     if (!utterance) continue;
-    const expectStep =
-      typeof row.stepId === 'string'
-        ? row.stepId
-        : typeof (row.expect as { stepId?: string } | undefined)?.stepId === 'string'
-          ? (row.expect as { stepId: string }).stepId
-          : null;
-    // scenarios without stepId treated as positives unknown — skip seed
-    if (!expectStep && row.expectStepId !== null) {
-      const sid =
-        typeof row.expectStepId === 'string'
-          ? row.expectStepId
-          : typeof row.expectedStepId === 'string'
-            ? row.expectedStepId
-            : null;
-      if (sid) {
-        items.push(makeEvalItem(utterance, { stepId: sid }, pack, `scenario-${i}`));
-      }
+    const expectObj =
+      row.expect && typeof row.expect === 'object'
+        ? (row.expect as Record<string, unknown>)
+        : null;
+    let expectStep: string | null | undefined;
+    if (expectObj && 'stepId' in expectObj) {
+      expectStep =
+        expectObj.stepId === null || expectObj.stepId === undefined
+          ? null
+          : String(expectObj.stepId);
+    } else if (typeof row.stepId === 'string') {
+      expectStep = row.stepId;
+    } else if (row.expectStepId === null) {
+      expectStep = null;
+    } else if (typeof row.expectStepId === 'string') {
+      expectStep = row.expectStepId;
+    } else if (typeof row.expectedStepId === 'string') {
+      expectStep = row.expectedStepId;
+    } else {
       continue;
     }
-    if (expectStep) {
-      items.push(makeEvalItem(utterance, { stepId: expectStep }, pack, `scenario-${i}`));
-    }
+    items.push(
+      makeEvalItem(utterance, { stepId: expectStep }, pack, `scenario-${i}`)
+    );
   }
   if (!items.length) return rolling;
   return appendEvalItems(rolling, items);
