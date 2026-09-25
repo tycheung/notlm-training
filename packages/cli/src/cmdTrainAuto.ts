@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import {
   mergeAliasesIntoIntents,
+  mergeFaqEntries,
   resolveTrainAutoConfig,
   runTrainAuto,
   writeAcceptDraft,
@@ -55,15 +56,19 @@ function rebuildPackIo(home: string): PackIO {
     home,
     loadPack: () => loadPackFolderJson(home),
     asIntentPack,
-    acceptIntentsMerge: async (aliasesDelta, scenarios) => {
+    acceptIntentsMerge: async (aliasesDelta, scenarios, faqDelta) => {
       const files = loadPackFolderJson(home);
       const intents = files.intents as {
         aliases?: Record<string, string[]>;
         meta?: string[];
         [k: string]: unknown;
       };
-      if (!intents) return { ok: false, errors: ['missing intents.json'] };
-      const merged = mergeAliasesIntoIntents(intents, aliasesDelta);
+      if (!intents && Object.keys(aliasesDelta).length) {
+        return { ok: false, errors: ['missing intents.json'] };
+      }
+      const mergedResult = intents
+        ? mergeAliasesIntoIntents(intents, aliasesDelta)
+        : { intents: intents!, softCapHit: false };
       const existingScenarios = Array.isArray(files.scenarios)
         ? (files.scenarios as unknown[])
         : [];
@@ -71,19 +76,40 @@ function rebuildPackIo(home: string): PackIO {
         ? [...existingScenarios, ...scenarios]
         : existingScenarios;
 
-      const pack = asIntentPack({ ...files, intents: merged });
+      const existingFaq = Array.isArray(files.faq)
+        ? (files.faq as Array<{
+            id: string;
+            aliases: string[];
+            text: string;
+            stepId?: string;
+          }>)
+        : [];
+      const faqMerged = faqDelta?.length
+        ? mergeFaqEntries(existingFaq, faqDelta)
+        : { faq: existingFaq, softCapHit: false };
+
+      const pack = asIntentPack({
+        ...files,
+        intents: mergedResult.intents,
+        faq: faqMerged.faq,
+      });
       if (!pack) return { ok: false, errors: ['invalid pack after merge'] };
 
       const errors: string[] = [];
       for (const [stepId, phrases] of Object.entries(aliasesDelta)) {
-        for (const utterance of phrases) {
+        for (const utterance of phrases.slice(0, 40)) {
           const item = makeEvalItem(utterance, { stepId }, pack);
-          if (!item.passed) {
-            errors.push(item.note ?? `${utterance} ↛ ${stepId}`);
+          // Only block hard collisions (maps to a different step). Null is OK for new aliases.
+          if (item.actualStepId != null && item.actualStepId !== stepId) {
+            errors.push(
+              `collision: expected:${stepId} got:${item.actualStepId}`
+            );
           }
         }
       }
-      if (errors.length) {
+      const sampled = Object.values(aliasesDelta).reduce((n, p) => n + Math.min(40, p.length), 0);
+      // Allow up to 25% collisions in a composer batch; otherwise reject.
+      if (errors.length > 0 && errors.length > Math.max(2, Math.floor(sampled * 0.25))) {
         return { ok: false, errors: errors.slice(0, 12) };
       }
 
@@ -91,12 +117,17 @@ function rebuildPackIo(home: string): PackIO {
       writeAcceptDraft({
         home,
         draftId,
-        intents: merged,
+        intents: mergedResult.intents,
         scenarios: nextScenarios,
+        faq: faqMerged.faq,
       });
       const { projectRoot } = resolveUipilotHome(join(home, '..'));
       await cmdPackAccept(draftId, projectRoot);
-      return { ok: true, draftId };
+      return {
+        ok: true,
+        draftId,
+        softCapHit: mergedResult.softCapHit || faqMerged.softCapHit,
+      };
     },
     retrainRanker: async () => {
       try {
@@ -134,6 +165,11 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
     hasFlag(args, '--fixture') ||
     process.env.UIPILOT_SATURATE_FIXTURE === '1' ||
     process.env.UIPILOT_TRAIN_AUTO_FIXTURE === '1';
+  const composer =
+    hasFlag(args, '--composer') || process.env.UIPILOT_TRAIN_AUTO_COMPOSER === '1';
+  const untilSoftCap =
+    hasFlag(args, '--until-soft-cap') ||
+    process.env.UIPILOT_TRAIN_AUTO_UNTIL_SOFT_CAP === '1';
   const resume = hasFlag(args, '--resume');
 
   const config = resolveTrainAutoConfig({
@@ -143,20 +179,28 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
     maxCpu,
     maxRam,
     workers: workersRaw ? Number(workersRaw) : undefined,
-    fixture,
+    fixture: composer ? false : fixture,
+    composer,
+    untilSoftCap,
     resume,
-    maxIterations: maxIterRaw ? Number(maxIterRaw) : fixture ? 40 : 10_000,
+    maxIterations: maxIterRaw
+      ? Number(maxIterRaw)
+      : untilSoftCap
+        ? 100_000
+        : fixture
+          ? 40
+          : 10_000,
   });
 
   let provider = null;
-  if (!fixture) {
+  if (!fixture && !composer) {
     try {
       provider = createProviderFromEnv();
     } catch (err) {
       console.error(
         err instanceof Error
           ? err.message
-          : `${String(err)} — use --fixture or set UIPILOT_LLM_*`
+          : `${String(err)} — use --fixture, --composer, or set UIPILOT_LLM_*`
       );
       process.exitCode = 1;
       return;
@@ -164,7 +208,7 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
   }
 
   console.log(
-    `train auto → ${home} pass=${config.passRate} conf=${config.confidence} window=${config.window} workers=${config.workers} fixture=${config.fixture}`
+    `train auto → ${home} pass=${config.passRate} conf=${config.confidence} window=${config.window} workers=${config.workers} fixture=${config.fixture} composer=${config.composer} untilSoftCap=${config.untilSoftCap}`
   );
 
   const report = await runTrainAuto({

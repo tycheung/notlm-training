@@ -68,9 +68,14 @@ export async function planNextAction(input: {
   stepIds: string[];
   rolling: RollingEvalState;
   lastActions: string[];
+  /** When growing to soft-cap, ignore rolling.met noops. */
+  untilSoftCap?: boolean;
 }): Promise<TrainAutoPlan> {
-  if (input.fixture || !input.provider) {
-    return fixturePlan(input.iteration, input.rolling);
+  if (input.fixture || !input.provider || input.untilSoftCap) {
+    const rolling = input.untilSoftCap
+      ? { ...input.rolling, met: false }
+      : input.rolling;
+    return fixturePlan(input.iteration, rolling);
   }
   const prompt = buildPlannerPrompt({
     stepIds: input.stepIds,
@@ -94,7 +99,7 @@ export function fixturePlan(iteration: number, rolling: RollingEvalState): Train
     return {
       action: 'generate',
       rationale: 'fixture: diversify pool',
-      params: { batchSize: 6, includeNegatives: true },
+      params: { batchSize: 96, includeNegatives: true },
     };
   }
   if (phase === 1) {

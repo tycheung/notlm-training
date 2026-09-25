@@ -61,6 +61,10 @@ export type TrainAutoConfig = {
   maxRam: number;
   workers: number;
   fixture: boolean;
+  /** Composer nebula generator (drunk/FAQ/non-feature) — no LLM required. */
+  composer: boolean;
+  /** Keep growing until alias soft-cap; do not stop early on rolling.met. */
+  untilSoftCap: boolean;
   resume: boolean;
   /** Hard cap on planner iterations (safety). */
   maxIterations: number;
@@ -71,7 +75,12 @@ export type TrainAutoConfig = {
 };
 
 export type TrainAutoReport = {
-  stoppedReason: 'met' | 'stop' | 'max-iterations' | 'error';
+  stoppedReason:
+    | 'met'
+    | 'stop'
+    | 'max-iterations'
+    | 'error'
+    | 'soft-cap';
   iterations: number;
   rolling: RollingEvalState;
   config: TrainAutoConfig;

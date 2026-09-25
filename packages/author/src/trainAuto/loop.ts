@@ -23,6 +23,7 @@ import {
 } from './control.js';
 import { makeEvalItem } from './evalUtterance.js';
 import { fixtureGenerateBatch, llmGenerateBatch, type GeneratedCandidate } from './generate.js';
+import { composerNebulaBatch, VB_NON_FEATURE_FAQ } from './nebulaGenerate.js';
 import { planNextAction, preferTuneBeforeEval } from './planner.js';
 import { deriveWorkerCount, mapPool, withinBudget } from './resources.js';
 import {
@@ -32,7 +33,7 @@ import {
   scoreRolling,
 } from './stats.js';
 import { collectInventoryGuideIds, guardDagMutation } from './dagGuard.js';
-import { ALIAS_SOFT_CAP } from '../limits.js';
+import { ALIAS_SOFT_CAP, FAQ_ALIAS_SOFT_CAP } from '../limits.js';
 import type {
   EvalItem,
   RollingEvalState,
@@ -44,11 +45,16 @@ export type PackIO = {
   home: string;
   loadPack: () => Record<string, unknown>;
   asIntentPack: (files: Record<string, unknown>) => IntentParsePack | null;
-  /** Persist intents.json (+ optional scenarios) via accept-gated draft. */
-  acceptIntentsMerge: (aliasesDelta: Record<string, string[]>, scenarios?: unknown[]) => Promise<{
+  /** Persist intents.json (+ optional scenarios/faq) via accept-gated draft. */
+  acceptIntentsMerge: (
+    aliasesDelta: Record<string, string[]>,
+    scenarios?: unknown[],
+    faqDelta?: Array<{ id: string; aliases: string[]; text: string; stepId?: string }>
+  ) => Promise<{
     ok: boolean;
     draftId?: string;
     errors?: string[];
+    softCapHit?: boolean;
   }>;
   /** Retrain pack/ranker.json after pack growth (optional). */
   retrainRanker?: () => Promise<{ ok: boolean; detail?: string }>;
@@ -110,11 +116,16 @@ export function resolveTrainAutoConfig(partial: Partial<TrainAutoConfig> & {
     maxRam,
     workers,
     fixture: partial.fixture ?? false,
+    composer: partial.composer ?? false,
+    untilSoftCap: partial.untilSoftCap ?? false,
     resume: partial.resume ?? false,
     maxIterations: partial.maxIterations ?? 10_000,
-    diversityMaxSimilarity: partial.diversityMaxSimilarity ?? (partial.fixture ? 0.98 : 0.92),
+    diversityMaxSimilarity:
+      partial.diversityMaxSimilarity ??
+      (partial.composer ? 0.995 : partial.fixture ? 0.98 : 0.92),
     diversityMinLexicalNovelty:
-      partial.diversityMinLexicalNovelty ?? (partial.fixture ? 0.08 : 0.15),
+      partial.diversityMinLexicalNovelty ??
+      (partial.composer ? 0.02 : partial.fixture ? 0.08 : 0.15),
   };
 }
 
@@ -215,6 +226,7 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
 
   let iterations = 0;
   let stoppedReason: TrainAutoReport['stoppedReason'] = 'max-iterations';
+  let zeroAddStreak = 0;
 
   try {
     while (iterations < config.maxIterations) {
@@ -235,12 +247,17 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
       }
 
       rolling = scoreRolling(rolling);
-      if (rolling.met) {
+      if (rolling.met && !config.untilSoftCap) {
         stoppedReason = 'met';
         log(
           `Met target: passRate=${rolling.lastPassRate.toFixed(4)} wilson=${(rolling.wilsonLower ?? 0).toFixed(4)} window=${rolling.window}`
         );
         break;
+      }
+      if (rolling.met && config.untilSoftCap) {
+        log(
+          `Rolling met (${rolling.lastPassRate.toFixed(4)}) but continuing until soft-cap`
+        );
       }
 
       const files = input.packIo.loadPack();
@@ -249,49 +266,70 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
 
       const planRaw = await planNextAction({
         provider: input.provider,
-        fixture: config.fixture,
+        fixture: config.fixture || config.composer,
         iteration: iterations,
         stepIds: pack.steps.map((s) => s.id),
         rolling,
         lastActions,
+        untilSoftCap: config.untilSoftCap,
       });
       const pendingPositives = pending.candidates.filter((c) => c.expectStepId).length;
-      const plan = preferTuneBeforeEval(planRaw, pendingPositives);
+      let plan = preferTuneBeforeEval(planRaw, pendingPositives);
       lastActions.push(plan.action);
       if (lastActions.length > 40) lastActions.splice(0, lastActions.length - 40);
       log(`#${iterations} plan=${plan.action} — ${plan.rationale}`);
 
       if (plan.action === 'noop') {
-        iterations += 1;
-        if (rolling.met) {
+        if (rolling.met && !config.untilSoftCap) {
           stoppedReason = 'met';
+          iterations += 1;
           break;
         }
-        continue;
+        if (config.untilSoftCap) {
+          plan = {
+            action: 'generate',
+            rationale: 'until-soft-cap: keep generating',
+            params: { batchSize: config.composer ? 48 : 8, includeNegatives: true },
+          };
+          log(`#${iterations} plan=generate — until-soft-cap override`);
+        } else {
+          iterations += 1;
+          continue;
+        }
       }
 
       if (plan.action === 'generate') {
-        const batchSize = plan.params?.batchSize ?? 8;
+        const batchSize =
+          plan.params?.batchSize ?? (config.composer ? 48 : 8);
         const includeNegatives = plan.params?.includeNegatives !== false;
         const prior = [
           ...vectors.items.map((v) => v.utterance),
           ...pending.candidates.map((c) => c.utterance),
         ];
-        const raw = config.fixture || !input.provider
-          ? fixtureGenerateBatch({
-              pack,
-              batchSize,
-              includeNegatives,
-              iteration: iterations,
-              prior,
-            })
-          : await llmGenerateBatch({
-              provider: input.provider,
-              pack,
-              batchSize,
-              includeNegatives,
-              prior,
-            });
+        const raw =
+          config.composer
+            ? composerNebulaBatch({
+                pack,
+                batchSize,
+                includeNegatives,
+                iteration: iterations,
+                prior,
+              })
+            : config.fixture || !input.provider
+              ? fixtureGenerateBatch({
+                  pack,
+                  batchSize,
+                  includeNegatives,
+                  iteration: iterations,
+                  prior,
+                })
+              : await llmGenerateBatch({
+                  provider: input.provider,
+                  pack,
+                  batchSize,
+                  includeNegatives,
+                  prior,
+                });
 
         const accepted: PendingPool['candidates'] = [];
         for (const c of raw) {
@@ -321,6 +359,16 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
       } else if (plan.action === 'tune') {
         const aliasesDelta: Record<string, string[]> = {};
         const scenarioRows: unknown[] = [];
+        const faqById = new Map<
+          string,
+          { id: string; aliases: string[]; text: string; stepId?: string }
+        >();
+        // Ensure non-feature FAQ seed is always present when composer/FAQ grows.
+        faqById.set(VB_NON_FEATURE_FAQ.id, {
+          id: VB_NON_FEATURE_FAQ.id,
+          aliases: [...VB_NON_FEATURE_FAQ.aliases],
+          text: VB_NON_FEATURE_FAQ.text,
+        });
         for (const c of pending.candidates) {
           if (c.expectStepId) {
             const list = aliasesDelta[c.expectStepId] ?? [];
@@ -338,21 +386,51 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
               expectStepId: null,
               id: c.id,
               negative: true,
+              faqId: c.faqId,
             });
           }
+          if (c.faqId && c.faqAnswer) {
+            const row = faqById.get(c.faqId) ?? {
+              id: c.faqId,
+              aliases: [],
+              text: c.faqAnswer,
+            };
+            if (!row.aliases.map((a) => a.toLowerCase()).includes(c.utterance.toLowerCase())) {
+              row.aliases.push(c.utterance);
+            }
+            row.text = c.faqAnswer || row.text;
+            faqById.set(c.faqId, row);
+          }
         }
-        if (Object.keys(aliasesDelta).length === 0) {
-          log('  tune skipped — no positive pending aliases');
+        const faqDelta = [...faqById.values()];
+        if (Object.keys(aliasesDelta).length === 0 && faqDelta.length === 0) {
+          log('  tune skipped — no positive pending aliases/faq');
         } else {
-          const result = await input.packIo.acceptIntentsMerge(aliasesDelta, scenarioRows);
+          const result = await input.packIo.acceptIntentsMerge(
+            aliasesDelta,
+            scenarioRows,
+            faqDelta
+          );
           if (!result.ok) {
             log(`  tune failed: ${(result.errors ?? []).join('; ')}`);
+            zeroAddStreak += 1;
           } else {
             log(`  tune accepted draft ${result.draftId}`);
             pending.lastTuned = [...pending.candidates];
             pending.candidates = [];
             writeJson(paths.pending, pending);
-            if (input.packIo.retrainRanker) {
+            if (result.softCapHit) {
+              stoppedReason = 'soft-cap';
+              log('  soft-cap reached on aliases/FAQ — stopping');
+              iterations += 1;
+              break;
+            }
+            // Retrain ranker every 5th successful tune under soft-cap mode (expensive).
+            const shouldRanker =
+              !config.untilSoftCap ||
+              iterations % 5 === 0 ||
+              iterations < 3;
+            if (shouldRanker && input.packIo.retrainRanker) {
               const r = await input.packIo.retrainRanker();
               log(
                 r.ok
@@ -360,6 +438,14 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
                   : `  ranker: auto-retrain skipped (${r.detail ?? 'fail'})`
               );
             }
+            zeroAddStreak = 0;
+          }
+          // Nebula / diversity plateau: no acceptables for many tunes.
+          if (config.untilSoftCap && zeroAddStreak >= 25) {
+            stoppedReason = 'soft-cap';
+            log('  soft-cap plateau: 25 tunes with no growth — stopping');
+            iterations += 1;
+            break;
           }
         }
       } else if (plan.action === 'dag') {
@@ -436,7 +522,9 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
   }
 
   rolling = scoreRolling(rolling);
-  if (rolling.met) stoppedReason = 'met';
+  if (rolling.met && stoppedReason === 'max-iterations' && !config.untilSoftCap) {
+    stoppedReason = 'met';
+  }
 
   const report: TrainAutoReport = {
     stoppedReason,
@@ -461,8 +549,9 @@ export function mergeAliasesIntoIntents(
   intents: { aliases?: Record<string, string[]>; meta?: string[]; [k: string]: unknown },
   delta: Record<string, string[]>,
   softCap = ALIAS_SOFT_CAP
-): typeof intents {
+): { intents: typeof intents; softCapHit: boolean; added: number } {
   const aliases = { ...(intents.aliases ?? {}) };
+  let added = 0;
   for (const [stepId, phrases] of Object.entries(delta)) {
     const existing = new Set((aliases[stepId] ?? []).map((p) => p.toLowerCase()));
     const next = [...(aliases[stepId] ?? [])];
@@ -471,11 +560,48 @@ export function mergeAliasesIntoIntents(
       if (!existing.has(p.toLowerCase())) {
         next.push(p);
         existing.add(p.toLowerCase());
+        added += 1;
       }
     }
     aliases[stepId] = next.slice(0, softCap);
   }
-  return { ...intents, aliases };
+  const stepIds = Object.keys(aliases);
+  const softCapHit =
+    stepIds.length > 0 && stepIds.every((id) => (aliases[id]?.length ?? 0) >= softCap);
+  return { intents: { ...intents, aliases }, softCapHit, added };
+}
+
+export function mergeFaqEntries(
+  existing: Array<{ id: string; aliases: string[]; text: string; stepId?: string; [k: string]: unknown }>,
+  delta: Array<{ id: string; aliases: string[]; text: string; stepId?: string }>,
+  softCap = FAQ_ALIAS_SOFT_CAP
+): { faq: typeof existing; softCapHit: boolean } {
+  const byId = new Map(existing.map((e) => [e.id, { ...e, aliases: [...(e.aliases ?? [])] }]));
+  let softCapHit = false;
+  for (const d of delta) {
+    const cur = byId.get(d.id) ?? {
+      id: d.id,
+      aliases: [],
+      text: d.text,
+      stepId: d.stepId,
+    };
+    const seen = new Set(cur.aliases.map((a) => a.toLowerCase()));
+    for (const a of d.aliases) {
+      if (cur.aliases.length >= softCap) {
+        softCapHit = true;
+        break;
+      }
+      if (!seen.has(a.toLowerCase())) {
+        cur.aliases.push(a);
+        seen.add(a.toLowerCase());
+      }
+    }
+    if (d.text) cur.text = d.text;
+    if (d.stepId) cur.stepId = d.stepId;
+    if (cur.aliases.length >= softCap) softCapHit = true;
+    byId.set(d.id, cur);
+  }
+  return { faq: [...byId.values()], softCapHit };
 }
 
 export function writeAcceptDraft(input: {
@@ -484,6 +610,7 @@ export function writeAcceptDraft(input: {
   intents: unknown;
   scenarios?: unknown;
   corpus?: unknown;
+  faq?: unknown;
 }): string {
   const draftDir = join(input.home, 'drafts', input.draftId);
   mkdirSync(draftDir, { recursive: true });
@@ -496,6 +623,9 @@ export function writeAcceptDraft(input: {
   }
   if (input.corpus !== undefined) {
     writeFileSync(join(draftDir, 'corpus.json'), `${JSON.stringify(input.corpus, null, 2)}\n`);
+  }
+  if (input.faq !== undefined) {
+    writeFileSync(join(draftDir, 'faq.json'), `${JSON.stringify(input.faq, null, 2)}\n`);
   }
   writeFileSync(
     join(draftDir, 'meta.json'),

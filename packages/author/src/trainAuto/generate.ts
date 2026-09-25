@@ -11,7 +11,10 @@ export type GeneratedCandidate = {
   utterance: string;
   expectStepId: string | null;
   kind: 'positive' | 'negative';
+  faqId?: string;
+  faqAnswer?: string;
 };
+
 
 const NEGATIVE_SEEDS = [
   'give me a recipe for a tomato sandwich',
@@ -77,8 +80,11 @@ export async function llmGenerateBatch(input: {
     'Rules:',
     '- Positives must map to ONE of: ' + JSON.stringify(stepIds),
     '- Negatives (off-topic) must set expectStepId to null',
+    '- For product Q&A that is NOT a navigation step, set expectStepId null and include faqId + faqAnswer',
+    '- Include confused / imprecise phrasings (typos, drunk, lost user) — do not assume they know routes',
+    '- Explicitly cover non-capabilities when relevant (e.g. VB does NOT take bowler payments/fees in-app)',
     input.includeNegatives
-      ? '- Include at least 25% negatives (recipes, trivia, unrelated apps)'
+      ? '- Include at least 25% negatives (recipes, trivia, unrelated apps) AND some product FAQ'
       : '- Focus on positives',
     '- Do NOT paraphrase existing utterances; invent orthogonal phrasings',
     '- Avoid near-duplicates of priorUtterances',
@@ -97,6 +103,8 @@ export async function llmGenerateBatch(input: {
           utterance?: string;
           expectStepId?: string | null;
           kind?: string;
+          faqId?: string;
+          faqAnswer?: string;
         }>;
       };
       const rows = Array.isArray(data.candidates) ? data.candidates : [];
@@ -110,7 +118,13 @@ export async function llmGenerateBatch(input: {
             : String(row.expectStepId);
         if (kind === 'negative') expectStepId = null;
         if (expectStepId && !stepIds.includes(expectStepId)) continue;
-        mapped.push({ utterance: row.utterance.trim(), expectStepId, kind });
+        mapped.push({
+          utterance: row.utterance.trim(),
+          expectStepId,
+          kind,
+          faqId: typeof row.faqId === 'string' ? row.faqId : undefined,
+          faqAnswer: typeof row.faqAnswer === 'string' ? row.faqAnswer : undefined,
+        });
       }
       if (mapped.length) return mapped.slice(0, input.batchSize);
     }
