@@ -77,27 +77,24 @@ describe('composerNebulaBatch', () => {
 });
 
 describe('mergeAliasesIntoIntents soft-cap', () => {
-  it('caps aliases and reports softCapHit only when all steps are full', () => {
+  it('caps per step and reports softCapHit on pack-total budget', () => {
     const intents = {
       aliases: {
         create_tournament: Array.from({ length: 5 }, (_, i) => `a${i}`),
         billing_ready: Array.from({ length: 5 }, (_, i) => `b${i}`),
       },
     };
-    const r1 = mergeAliasesIntoIntents(intents, { create_tournament: ['new'] }, 6);
+    const r1 = mergeAliasesIntoIntents(intents, { create_tournament: ['new'] }, 12);
     expect(r1.intents.aliases!.create_tournament).toHaveLength(6);
     expect(r1.softCapHit).toBe(false);
     expect(r1.added).toBe(1);
 
+    // Total aliases (6+6=12) meets pack soft budget even though neither step is full.
     const r2 = mergeAliasesIntoIntents(
       r1.intents,
-      {
-        create_tournament: ['overflow'],
-        billing_ready: ['overflow-b'],
-      },
-      6
+      { billing_ready: ['overflow-b'] },
+      12
     );
-    expect(r2.intents.aliases!.create_tournament).toHaveLength(6);
     expect(r2.intents.aliases!.billing_ready).toHaveLength(6);
     expect(r2.softCapHit).toBe(true);
   });

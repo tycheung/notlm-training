@@ -566,8 +566,12 @@ export function mergeAliasesIntoIntents(
     aliases[stepId] = next.slice(0, softCap);
   }
   const stepIds = Object.keys(aliases);
+  const total = stepIds.reduce((n, id) => n + (aliases[id]?.length ?? 0), 0);
+  // Pack-total soft budget (practical stop for --until-soft-cap). Per-step
+  // slice above still enforces the same ceiling as a hard merge guard.
   const softCapHit =
-    stepIds.length > 0 && stepIds.every((id) => (aliases[id]?.length ?? 0) >= softCap);
+    total >= softCap ||
+    (stepIds.length > 0 && stepIds.every((id) => (aliases[id]?.length ?? 0) >= softCap));
   return { intents: { ...intents, aliases }, softCapHit, added };
 }
 
@@ -577,7 +581,6 @@ export function mergeFaqEntries(
   softCap = FAQ_ALIAS_SOFT_CAP
 ): { faq: typeof existing; softCapHit: boolean } {
   const byId = new Map(existing.map((e) => [e.id, { ...e, aliases: [...(e.aliases ?? [])] }]));
-  let softCapHit = false;
   for (const d of delta) {
     const cur = byId.get(d.id) ?? {
       id: d.id,
@@ -587,10 +590,7 @@ export function mergeFaqEntries(
     };
     const seen = new Set(cur.aliases.map((a) => a.toLowerCase()));
     for (const a of d.aliases) {
-      if (cur.aliases.length >= softCap) {
-        softCapHit = true;
-        break;
-      }
+      if (cur.aliases.length >= softCap) break;
       if (!seen.has(a.toLowerCase())) {
         cur.aliases.push(a);
         seen.add(a.toLowerCase());
@@ -598,10 +598,13 @@ export function mergeFaqEntries(
     }
     if (d.text) cur.text = d.text;
     if (d.stepId) cur.stepId = d.stepId;
-    if (cur.aliases.length >= softCap) softCapHit = true;
     byId.set(d.id, cur);
   }
-  return { faq: [...byId.values()], softCapHit };
+  const faq = [...byId.values()];
+  const total = faq.reduce((n, e) => n + (e.aliases?.length ?? 0), 0);
+  const softCapHit =
+    total >= softCap || faq.some((e) => (e.aliases?.length ?? 0) >= softCap);
+  return { faq, softCapHit };
 }
 
 export function writeAcceptDraft(input: {
