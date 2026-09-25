@@ -21,24 +21,23 @@ export function takeFlag(args: string[], name: string): string | undefined {
 }
 
 export function usage(): void {
-  console.log(`Usage:
-  uipilot-training exchanges pull --url <endpoint> [--out <path>]
-  uipilot-training exchanges draft --from <file.json|jsonl> [dir]
-  uipilot-training exchanges fold --from <draft.json> [dir]
-  uipilot-training metrics --from <exchanges.json> [--misses <misses.json>]
+  console.log(`Usage (training modes):
+  uipilot-training auto [dir] [--pass-rate=0.99] [--confidence=0.99] [--window=N]
+                        [--max-cpu=0.8] [--max-ram=0.8] [--workers=N] [--unlimited]
+                        [--fixture] [--resume]
+  uipilot-training auto pause|resume|stop [dir]
+  uipilot-training auto ranker [dir]   # explicit ranker retrain (also auto after tune)
 
-  uipilot-training conversations pull --url <endpoint> [--out <path>]
-  uipilot-training conversations analyze --from <conv.json> [dir] [--mode=review|auto] [--fixture]
+  uipilot-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
+  uipilot-training feedback conversations pull|analyze …
+  # legacy: exchanges pull|draft|fold ; conversations analyze
 
-  uipilot-training map|tune|prepare [dir] …
-  uipilot-training scenarios … | pack author|accept | intents tune | ranker train
-  uipilot-training inventory|extract|trace|annotate|jobs|checklist|dag|talk|misses …
+Authoring (not training modes):
+  uipilot-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
 
-  uipilot-training train auto [dir] [--pass-rate=0.99] [--confidence=0.99] [--window=N]
-                              [--max-cpu=0.8] [--max-ram=0.8] [--workers=N] [--fixture] [--resume]
-  uipilot-training train pause|resume|stop [dir]
+Legacy aliases (deprecated): train auto, exchanges *, conversations *, misses *, ranker train
 
-  Pack quality gates stay on operating uipilotCLI:
+Pack quality gates stay on operating uipilotCLI:
   uipilotCLI validate | intents check | ranker check
 `);
 }
@@ -157,17 +156,54 @@ export async function runCli(argv: string[]): Promise<void> {
   const sub = argv[1];
   const rest = argv.slice(2);
   try {
-    if (cmd === 'exchanges' && sub === 'pull') await cmdPull(rest);
-    else if (cmd === 'exchanges' && sub === 'draft') await cmdDraft(rest);
-    else if (cmd === 'exchanges' && sub === 'fold') await cmdFold(rest);
-    else if (cmd === 'conversations' && sub === 'pull') {
+    if (cmd === 'auto') {
+      const { cmdAuto, cmdAutoPause, cmdAutoResume, cmdAutoStop, cmdAutoRanker } =
+        await import('./cmdAuto.js');
+      if (!sub || sub.startsWith('--') || /^\d/.test(sub) || sub.includes('/') || sub.includes('\\')) {
+        await cmdAuto(argv.slice(1));
+      } else if (sub === 'pause') await cmdAutoPause(rest);
+      else if (sub === 'resume') await cmdAutoResume(rest);
+      else if (sub === 'stop') await cmdAutoStop(rest);
+      else if (sub === 'ranker') await cmdAutoRanker(rest);
+      else await cmdAuto(argv.slice(1));
+      return;
+    }
+    if (cmd === 'feedback') {
+      const { cmdFeedback } = await import('./cmdFeedback.js');
+      await cmdFeedback(argv.slice(1));
+      return;
+    }
+    // Legacy aliases → new modes
+    if (cmd === 'train' && (sub === 'auto' || sub === 'pause' || sub === 'resume' || sub === 'stop')) {
+      console.warn('[deprecated] use `uipilot-training auto` instead of `train auto`');
+      const { cmdAuto, cmdAutoPause, cmdAutoResume, cmdAutoStop } = await import('./cmdAuto.js');
+      if (sub === 'auto') await cmdAuto(rest);
+      else if (sub === 'pause') await cmdAutoPause(rest);
+      else if (sub === 'resume') await cmdAutoResume(rest);
+      else await cmdAutoStop(rest);
+      return;
+    }
+    if (cmd === 'exchanges' && sub === 'pull') {
+      console.warn('[deprecated] use `uipilot-training feedback pull`');
+      await cmdPull(rest);
+    } else if (cmd === 'exchanges' && sub === 'draft') {
+      console.warn('[deprecated] use `uipilot-training feedback draft`');
+      await cmdDraft(rest);
+    } else if (cmd === 'exchanges' && sub === 'fold') {
+      console.warn('[deprecated] use `uipilot-training feedback fold`');
+      await cmdFold(rest);
+    } else if (cmd === 'conversations' && sub === 'pull') {
+      console.warn('[deprecated] use `uipilot-training feedback conversations pull`');
       const { cmdConversationsPull } = await import('./cmdConversations.js');
       await cmdConversationsPull(rest);
     } else if (cmd === 'conversations' && sub === 'analyze') {
+      console.warn('[deprecated] use `uipilot-training feedback conversations analyze`');
       const { cmdConversationsAnalyze } = await import('./cmdConversations.js');
       await cmdConversationsAnalyze(rest);
-    } else if (cmd === 'metrics') await cmdMetrics(argv.slice(1));
-    else if (cmd === 'help' || cmd === '--help' || !cmd) usage();
+    } else if (cmd === 'metrics') {
+      console.warn('[deprecated] use `uipilot-training feedback metrics`');
+      await cmdMetrics(argv.slice(1));
+    } else if (cmd === 'help' || cmd === '--help' || !cmd) usage();
     else {
       const { isFatCommand, runFatCli } = await import('./fatDispatch.js');
       if (isFatCommand(cmd, sub)) {

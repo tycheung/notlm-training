@@ -32,6 +32,7 @@ import {
   scoreRolling,
 } from './stats.js';
 import { collectInventoryGuideIds, guardDagMutation } from './dagGuard.js';
+import { ALIAS_SOFT_CAP } from '../limits.js';
 import type {
   EvalItem,
   RollingEvalState,
@@ -49,6 +50,8 @@ export type PackIO = {
     draftId?: string;
     errors?: string[];
   }>;
+  /** Retrain pack/ranker.json after pack growth (optional). */
+  retrainRanker?: () => Promise<{ ok: boolean; detail?: string }>;
 };
 
 export type RunTrainAutoInput = {
@@ -349,6 +352,14 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
             pending.lastTuned = [...pending.candidates];
             pending.candidates = [];
             writeJson(paths.pending, pending);
+            if (input.packIo.retrainRanker) {
+              const r = await input.packIo.retrainRanker();
+              log(
+                r.ok
+                  ? `  ranker: auto-retrained after tune (${r.detail ?? 'ok'})`
+                  : `  ranker: auto-retrain skipped (${r.detail ?? 'fail'})`
+              );
+            }
           }
         }
       } else if (plan.action === 'dag') {
@@ -399,7 +410,16 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
           `  eval ${passN}/${scored.length} batch; rolling=${rolling.lastPassRate.toFixed(4)} (${Math.min(rolling.items.length, rolling.window)}/${rolling.window}) wilson=${(rolling.wilsonLower ?? 0).toFixed(4)}`
         );
       } else if (plan.action === 'ranker') {
-        log('  ranker: skipped in-loop (run `uipilot-training ranker train` separately)');
+        if (input.packIo.retrainRanker) {
+          const r = await input.packIo.retrainRanker();
+          log(
+            r.ok
+              ? `  ranker: retrained (${r.detail ?? 'ok'})`
+              : `  ranker: retrain failed (${r.detail ?? 'unknown'})`
+          );
+        } else {
+          log('  ranker: no retrainRanker hook on PackIO');
+        }
       }
 
       writeJson(paths.state, { lastActions, iteration: iterations });
@@ -439,19 +459,21 @@ const NEGATIVE_FALLBACK = [
 /** Helper used by CLI to merge aliases into pack via drafts. */
 export function mergeAliasesIntoIntents(
   intents: { aliases?: Record<string, string[]>; meta?: string[]; [k: string]: unknown },
-  delta: Record<string, string[]>
+  delta: Record<string, string[]>,
+  softCap = ALIAS_SOFT_CAP
 ): typeof intents {
   const aliases = { ...(intents.aliases ?? {}) };
   for (const [stepId, phrases] of Object.entries(delta)) {
     const existing = new Set((aliases[stepId] ?? []).map((p) => p.toLowerCase()));
     const next = [...(aliases[stepId] ?? [])];
     for (const p of phrases) {
+      if (next.length >= softCap) break;
       if (!existing.has(p.toLowerCase())) {
         next.push(p);
         existing.add(p.toLowerCase());
       }
     }
-    aliases[stepId] = next;
+    aliases[stepId] = next.slice(0, softCap);
   }
   return { ...intents, aliases };
 }

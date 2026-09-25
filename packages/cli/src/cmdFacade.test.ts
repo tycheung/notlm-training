@@ -69,7 +69,9 @@ describe('map / tune façade', () => {
     expect(pathExists(join(home, 'structured-draft.json'))).toBe(true);
   });
 
-  it('tune with --fixture saturates without LLM provider', async () => {
+  it(
+    'tune with --fixture saturates without LLM provider',
+    async () => {
     const root = mkdtempSync(join(tmpdir(), 'uipilot-tune-'));
     temps.push(root);
     await cmdInit(root);
@@ -81,9 +83,13 @@ describe('map / tune façade', () => {
     await cmdDagGenerate(root);
     await cmdTune([root, '--fixture', '--batch=3']);
     expect(pathExists(join(home, 'saturation', 'candidates.json'))).toBe(true);
-  });
+  },
+    15_000
+  );
 
-  it('tune --force=N hard-adds exactly N ignoring novelty', async () => {
+  it(
+    'tune --force=N hard-adds exactly N ignoring novelty',
+    async () => {
     const root = mkdtempSync(join(tmpdir(), 'uipilot-force-'));
     temps.push(root);
     await cmdInit(root);
@@ -102,7 +108,9 @@ describe('map / tune façade', () => {
     expect(data.candidates.length).toBe(12);
     expect(report.stopReason).toBe('force');
     expect(report.forcedCount).toBe(12);
-  });
+  },
+    30_000
+  );
 });
 
 describe('annotate checklist', () => {

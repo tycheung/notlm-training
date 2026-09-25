@@ -29,67 +29,58 @@ Bootstrap a host folder once with the operating CLI, then improve here:
 uipilotCLI init ./my-app
 ```
 
-## Learning Mode loop (1A)
+## Training modes (product surface)
+
+There are **two** training interfaces. Everything else is authoring/bootstrap.
+
+### 1) `auto` — unattended growth
+
+Starts from target flow behavior, then branches to more nebulous utterances.
+Auto-retrains `pack/ranker.json` after pack growth. Soft alias cap: **10 000** per step / FAQ entry.
 
 ```bash
-npx uipilot-training exchanges pull --url …/uipilot/misses?exchanges_only=true --out ex.json
-npx uipilot-training exchanges draft --from ex.json ./my-app
-npx uipilot-training exchanges fold --from .uipilot/drafts/exchanges-…/draft.json ./my-app
-# review drafts/exchanges-fold-*/ — set meta.checked=true
-npx uipilot-training pack accept <draftId> ./my-app
-uipilotCLI intents check ./my-app   # gates scenarios.json (+ pack intents)
-npx uipilot-training metrics --from ex.json --misses misses.json
+npx uipilot-training auto ./my-app
+npx uipilot-training auto ./my-app --pass-rate=0.99 --confidence=0.99 --unlimited
+npx uipilot-training auto ./my-app --fixture --window=20 --pass-rate=0.9
+npx uipilot-training auto pause ./my-app
+npx uipilot-training auto resume ./my-app
+npx uipilot-training auto stop ./my-app
+npx uipilot-training auto ranker ./my-app   # explicit retrain (also runs after tune)
 ```
 
-`exchanges fold` writes pack pieces **and** `scenarios.json` so operating
-`intents check` can gate promoted utterances after accept.
+Defaults: pass-rate/confidence 0.99 → window 459; max CPU/RAM 80%. BYO model via
+`UIPILOT_LLM_*`. State: `.uipilot/train-auto/`. Also seeds `e2e-scenarios.json` and
+`drafts/glossary-from-controls.json` when missing.
 
-## Autonomous train auto
-
-Unattended planner that invents the next training action, diversity-gates
-candidates (hashed vectors + lexical novelty), may propose inventory-backed DAG
-edits, and iterates until a rolling-window pass rate / confidence bar is met.
+### 2) `feedback` — chat / miss logs → targeted fix
 
 ```bash
-# Defaults: pass-rate=0.99 confidence=0.99 → window 459; max CPU/RAM 80%
-npx uipilot-training train auto ./my-app
-npx uipilot-training train auto ./my-app --fixture --window=20 --pass-rate=0.9
-npx uipilot-training train pause ./my-app
-npx uipilot-training train resume ./my-app
-npx uipilot-training train stop ./my-app
+npx uipilot-training feedback pull --url …/uipilot/misses?exchanges_only=true --out ex.json
+npx uipilot-training feedback draft --from ex.json ./my-app
+npx uipilot-training feedback fold --from .uipilot/drafts/exchanges-…/draft.json ./my-app
+npx uipilot-training feedback accept <draftId> ./my-app   # accept + ranker retrain
+
+npx uipilot-training feedback conversations pull --url … --out conv.json
+npx uipilot-training feedback conversations analyze --from conv.json ./my-app --mode=review
+npx uipilot-training feedback run --from conv.json ./my-app --mode=auto [--branch-out]
+
+npx uipilot-training feedback misses pull|export|draft-aliases …
+npx uipilot-training feedback metrics --from ex.json
 ```
 
-BYO model via `UIPILOT_LLM_*` (ollama / openai / openai-compat / anthropic /
-huggingface). State lives under `.uipilot/train-auto/` (`control.json`,
-`rolling.json`, `vectors.json`, `report.json`). SIGINT pauses.
+`--mode=auto` on conversations analyze auto-accepts checked drafts. `--branch-out`
+optionally saturates around log contexts after a run.
 
-## Conversation analyze (hits + misses)
+Legacy commands (`train auto`, `exchanges *`, `conversations *`, …) still work as
+deprecated aliases.
 
-Runtime hosts can log full chat transcripts as `ConversationTurn` /
-`ConversationRecord` dumps (see operating `ARCHITECTURE.md`). Training analyzes
-those flows with an LLM and proposes intent aliases / FAQ / corpus:
-
-```bash
-npx uipilot-training conversations pull --url …/conversations --out conv.json
-npx uipilot-training conversations analyze --from conv.json ./my-app --mode=review
-# review drafts/conversations-fold-*/ — set meta.checked=true
-npx uipilot-training pack accept <draftId> ./my-app
-uipilotCLI intents check ./my-app
-```
-
-`--mode=auto` writes the fold draft with `meta.checked=true` and runs `pack accept`
-immediately (still validates step ids; never promotes `_unknown_step` as aliases).
-Use `--fixture` for CI without an LLM.
-
-MissExchange Learning Mode loop above remains available for single-turn train windows.
-
-## Authoring
+## Authoring (not training modes)
 
 ```bash
 npx uipilot-training map|tune|prepare ./my-app
 npx uipilot-training scenarios saturate ./my-app --fixture
 npx uipilot-training intents tune ./my-app
-npx uipilot-training ranker train ./my-app   # pack/ranker.json + ranker.onnx
+npx uipilot-training pack author|accept …
 ```
 
 ## Providers

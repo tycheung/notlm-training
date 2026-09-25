@@ -46,6 +46,7 @@ function asIntentPack(files: Record<string, unknown>): IntentParsePack | null {
     steps: flow as IntentParsePack['steps'],
     aliases: intents.aliases ?? {},
     meta: intents.meta,
+    faq: Array.isArray(files.faq) ? (files.faq as IntentParsePack['faq']) : undefined,
   };
 }
 
@@ -96,6 +97,18 @@ function rebuildPackIo(home: string): PackIO {
       const { projectRoot } = resolveUipilotHome(join(home, '..'));
       await cmdPackAccept(draftId, projectRoot);
       return { ok: true, draftId };
+    },
+    retrainRanker: async () => {
+      try {
+        const { cmdRankerTrain } = await import('./cmdRanker.js');
+        await cmdRankerTrain([join(home, '..')]);
+        return { ok: true, detail: 'pack/ranker.json' };
+      } catch (err) {
+        return {
+          ok: false,
+          detail: err instanceof Error ? err.message : String(err),
+        };
+      }
     },
   };
 }
