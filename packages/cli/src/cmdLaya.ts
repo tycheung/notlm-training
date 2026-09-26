@@ -73,7 +73,13 @@ export async function cmdLayaTrain(args: string[]): Promise<void> {
   const { manifest } = convertUipilotToLaya(dir, { mode, out: layaDir });
   console.log(`Converted ${manifest.rows} rows → ${manifest.trainPath}`);
 
-  const script = join(trainingRepoRoot(), 'scripts', 'laya_train.py');
+  const script = join(
+    trainingRepoRoot(),
+    'packages',
+    'laya-train',
+    'scripts',
+    'laya_train.py'
+  );
   const python = process.env.UIPILOT_LAYA_PYTHON ?? 'python';
   const trainArgs = [
     script,
