@@ -44,13 +44,27 @@ function faqList(faq: unknown): FaqEntry[] {
   return Array.isArray(faq) ? (faq as FaqEntry[]) : [];
 }
 
-function criteriaText(stepId: string, aliases: string[], keywords: string[]): string {
-  const parts = new Set<string>();
-  for (const a of [...aliases, ...keywords, stepId.replace(/_/g, ' ')]) {
-    const t = a.trim();
-    if (t) parts.add(t);
+function shortPhrase(raw: string, max = 48): string {
+  const t = raw.trim().replace(/\s+/g, ' ');
+  if (!t) return '';
+  // Aliases in this pack can be multi-KB synthetic dumps — never use those.
+  if (t.length > 80 || t.split(',').length > 4) return '';
+  return t.slice(0, max);
+}
+
+function criteriaText(stepId: string, aliases: string[], keywords: string[], title?: string): string {
+  // Laya option budget is ~48 tokens/option. Title + 1–2 short phrases only.
+  const parts: string[] = [];
+  const titlePart = shortPhrase(title ?? '', 60) || stepId.replace(/_/g, ' ');
+  parts.push(titlePart);
+  for (const a of [...aliases, ...keywords]) {
+    const t = shortPhrase(a, 40);
+    if (!t) continue;
+    if (parts.some((p) => p.toLowerCase() === t.toLowerCase())) continue;
+    parts.push(t);
+    if (parts.length >= 3 || parts.join(', ').length > 90) break;
   }
-  return [...parts].join(', ');
+  return parts.join(', ').slice(0, 100);
 }
 
 function scoreStep(utterance: string, stepId: string, aliases: string[], keywords: string[]): number {
@@ -135,8 +149,9 @@ function buildStepCriteria(
     const step = byId.get(id);
     criteria[id] = criteriaText(
       id,
-      aliases[id] ?? [],
-      Array.isArray(step?.keywords) ? step.keywords : []
+      (aliases[id] ?? []).slice(0, 4),
+      Array.isArray(step?.keywords) ? step.keywords.slice(0, 4) : [],
+      step?.title
     );
   }
   if (!criteria.refuse) criteria.refuse = 'off-domain or unknown';
@@ -148,8 +163,8 @@ function buildFaqCriteria(faqIds: string[], faqs: FaqEntry[]): Record<string, st
   for (const id of faqIds) {
     if (id === 'none') continue;
     const entry = faqs.find((f) => f.id === id);
-    const aliasHint = (entry?.aliases ?? []).slice(0, 8).join(', ');
-    criteria[id] = aliasHint || id;
+    const title = (entry?.aliases ?? [])[0] ?? id;
+    criteria[id] = String(title).slice(0, 80);
   }
   return criteria;
 }
