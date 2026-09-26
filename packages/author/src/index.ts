@@ -65,11 +65,21 @@ export {
   type GenerateCandidatesResult,
 } from './saturation/generateCandidates.js';
 export {
+  labelCandidates,
   softLabelCandidates,
   faqDraftFromSoftLabels,
   type SoftLabelResult,
   type SoftLabeledScenario,
+  type LabelContext,
+  type LabelProvider,
 } from './saturation/softLabel.js';
+export {
+  createMockLayaLabeler,
+  createLayaProcessLabeler,
+  createLabelerFromEnv,
+  resolveLabelerKind,
+  type LabelCandidate,
+} from './labeler/layaLabeler.js';
 export {
   mineIntentFailures,
   type FailureMineResult,

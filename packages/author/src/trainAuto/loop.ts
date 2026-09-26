@@ -8,6 +8,7 @@ import {
 import { dirname, join } from 'node:path';
 import type { IntentParsePack } from '@uipilot/core';
 import type { LlmProvider } from '@uipilot/llm';
+import { resolveLabelerKind } from '../labeler/layaLabeler.js';
 import {
   appendToVectorStore,
   diversityGate,
@@ -354,8 +355,47 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
         writeJson(paths.pending, pending);
         log(`  accepted ${accepted.length}/${raw.length} diverse candidates`);
       } else if (plan.action === 'label') {
-        // Soft labels already carried as expectStepId from generate.
-        log(`  pending labeled pool size=${pending.candidates.length}`);
+        const unlabeled = pending.candidates.filter((c) => !c.expectStepId);
+        if (unlabeled.length === 0) {
+          log(`  pending labeled pool size=${pending.candidates.length}`);
+        } else {
+          const labelerKind = resolveLabelerKind();
+          if (labelerKind.startsWith('laya') || labelerKind === 'mock') {
+            const { createLabelerFromEnv } = await import('../labeler/layaLabeler.js');
+            const { labelCandidates } = await import('../saturation/softLabel.js');
+            const labeler = createLabelerFromEnv();
+            const files = input.packIo.loadPack();
+            const labeled = await labelCandidates({
+              labeler,
+              candidates: unlabeled.map((c) => ({
+                id: c.id,
+                utterance: c.utterance,
+              })),
+              flowSteps: files.flow,
+              intents: files.intents,
+              faq: files.faq,
+            });
+            if (labeled.ok) {
+              const byId = new Map(labeled.scenarios.map((s) => [s.id, s]));
+              for (const c of pending.candidates) {
+                const s = byId.get(c.id);
+                if (!s?.expect.stepId) continue;
+                c.expectStepId = s.expect.stepId;
+                if (s.expect.faqId) c.faqId = s.expect.faqId;
+              }
+              writeJson(paths.pending, pending);
+              log(
+                `  laya-labeled ${labeled.scenarios.length} / pending=${pending.candidates.length}`
+              );
+            } else {
+              log(`  laya label failed: ${labeled.errors.join('; ')}`);
+            }
+          } else {
+            log(
+              `  pending labeled pool size=${pending.candidates.length} (set UIPILOT_LABELER=laya|mock to label)`
+            );
+          }
+        }
       } else if (plan.action === 'tune') {
         const aliasesDelta: Record<string, string[]> = {};
         const scenarioRows: unknown[] = [];

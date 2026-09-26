@@ -12,6 +12,7 @@ export default defineConfig({
       include: [
         'packages/recalibrate/src/**/*.ts',
         'packages/ranker-train/src/**/*.ts',
+        'packages/laya-train/src/**/*.ts',
         'packages/author/src/**/*.ts',
       ],
       exclude: [
@@ -52,6 +53,10 @@ export default defineConfig({
       '@uipilot-training/ranker-train': resolve(
         __dirname,
         'packages/ranker-train/src/index.ts'
+      ),
+      '@uipilot-training/laya-train': resolve(
+        __dirname,
+        'packages/laya-train/src/index.ts'
       ),
     },
   },

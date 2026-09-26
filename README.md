@@ -90,6 +90,23 @@ npx uipilot-training pack author|accept …
 
 Set `UIPILOT_LLM_*` (see `packages/llm/README.md`). Import from `@uipilot/llm` directly.
 
+Soft-label / auto label pool: `UIPILOT_LABELER=llm|laya|mock` (`mock` is deterministic, no GPU).
+
+## Laya decision model (local only)
+
+Convert pack + scenarios to Laya typed-decision JSONL, then fine-tune on a **local** machine
+(GPU optional). Nightly server **promote** (Celery) updates CPU pack aliases + `ranker.json` only —
+it never runs `laya train` on the server.
+
+```bash
+npx uipilot-training laya convert ./my-app --mode=full
+npx uipilot-training laya train ./my-app --mode=light --dry-run   # CI-safe stub
+UIPILOT_LAYA_DRY_RUN=1 npx uipilot-training laya train ./my-app
+```
+
+Output: `.uipilot/laya/train.jsonl`, `manifest.json`, and (after train) checkpoint + metrics sidecar
+via `scripts/laya_train.py`.
+
 ## CI
 
 GitHub Actions checks out **both** repos, builds operating core/schema/ranker, then:

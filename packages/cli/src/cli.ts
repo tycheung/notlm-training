@@ -34,6 +34,7 @@ export function usage(): void {
 
 Authoring (not training modes):
   uipilot-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
+  uipilot-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
 
 Legacy aliases (deprecated): train auto, exchanges *, conversations *, misses *, ranker train
 

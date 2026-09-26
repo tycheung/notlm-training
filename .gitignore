@@ -5,3 +5,6 @@ coverage/
 .DS_Store
 # Local / host-specific trainer scripts — not part of the published product CLI
 scripts/
+
+# Laya local convert/train artifacts
+**/.uipilot/laya/

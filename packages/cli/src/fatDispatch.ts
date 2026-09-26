@@ -23,6 +23,7 @@ import {
   cmdScenariosLabelPool,
 } from './cmdScenariosAsk.js';
 import { cmdRankerTrain } from './cmdRanker.js';
+import { cmdLaya } from './cmdLaya.js';
 import { cmdTalkDraft } from './cmdTalkDraft.js';
 import {
   cmdMissesDraftAliases,
@@ -52,6 +53,7 @@ const FAT_TOP = new Set([
   'talk',
   'misses',
   'train',
+  'laya',
 ]);
 
 export function isFatCommand(cmd: string | undefined, sub?: string): boolean {
@@ -67,6 +69,7 @@ export function isFatCommand(cmd: string | undefined, sub?: string): boolean {
   }
   if (cmd === 'intents' && sub === 'tune') return true;
   if (cmd === 'ranker' && sub === 'train') return true;
+  if (cmd === 'laya') return sub === 'convert' || sub === 'train';
   return false;
 }
 
@@ -136,6 +139,9 @@ export async function runFatCli(argv: string[]): Promise<void> {
     case 'ranker':
       if (sub === 'train') await cmdRankerTrain(rest);
       else throw new Error('Usage: ranker train … (ranker check stays on uipilotCLI)');
+      break;
+    case 'laya':
+      await cmdLaya([sub, ...rest].filter(Boolean) as string[]);
       break;
     case 'misses':
       if (sub === 'export') await cmdMissesExport(rest);

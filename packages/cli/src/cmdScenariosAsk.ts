@@ -1,6 +1,8 @@
 import {
+  createLabelerFromEnv,
   faqDraftFromSoftLabels,
-  softLabelCandidates,
+  labelCandidates,
+  resolveLabelerKind,
   tuneIntents,
 } from '@uipilot/author';
 import { checkIntents } from '@uipilot/core';
@@ -70,11 +72,18 @@ export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
   }
 
   const allScenarios: unknown[] = [];
+  const labelerKind = resolveLabelerKind();
+  const useLabeler =
+    labelerKind !== 'llm' || hasFlag(args, '--laya');
+  const labeler = useLabeler ? createLabelerFromEnv() : undefined;
   for (let i = 0; i < pool.length; i += chunk) {
     const slice = pool.slice(i, i + chunk);
-    console.log(`label-pool: chunk ${i / chunk + 1} (${slice.length} of ${pool.length})…`);
-    const labeled = await softLabelCandidates({
-      provider: createProviderFromEnv(),
+    console.log(
+      `label-pool (${useLabeler ? labeler?.id ?? labelerKind : 'llm'}): chunk ${i / chunk + 1} (${slice.length} of ${pool.length})…`
+    );
+    const labeled = await labelCandidates({
+      labeler,
+      provider: useLabeler ? undefined : createProviderFromEnv(),
       candidates: slice,
       flowSteps: files.flow,
       intents: files.intents,

@@ -12,6 +12,7 @@
     { "path": "../codegen" },
     { "path": "../mapper" },
     { "path": "../ranker-train" },
+    { "path": "../laya-train" },
     { "path": "../recalibrate" },
     { "path": "../../../uipilot/packages/core" },
     { "path": "../../../uipilot/packages/schema" },

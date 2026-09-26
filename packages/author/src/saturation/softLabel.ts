@@ -1,5 +1,6 @@
 import type { LlmProvider } from '@uipilot/llm';
 import { extractJsonText } from '../parseModelJson.js';
+import type { LabelContext, LabelProvider } from '../labeler/layaLabeler.js';
 import { buildSoftLabelPrompt } from './generatePrompt.js';
 
 export type SoftLabeledScenario = {
@@ -13,12 +14,53 @@ export type SoftLabeledScenario = {
     /** Product Q&A — draft into pack/faq.json after review. */
     faqId?: string | null;
     answer?: string;
+    guideId?: string;
   };
 };
 
 export type SoftLabelResult =
   | { ok: true; scenarios: SoftLabeledScenario[]; raw: unknown }
   | { ok: false; errors: string[]; checklist: string[] };
+
+export type { LabelContext, LabelProvider };
+
+/** Prefer LabelProvider (Laya / mock); else LLM soft-label. */
+export async function labelCandidates(input: {
+  labeler?: LabelProvider;
+  provider?: LlmProvider;
+  candidates: Array<{ id?: string; utterance: string }>;
+  flowSteps: unknown;
+  intents?: unknown;
+  faq?: unknown;
+  productBlurb?: string;
+  guideByStep?: Record<string, string>;
+}): Promise<SoftLabelResult> {
+  if (input.labeler) {
+    return input.labeler.labelCandidates({
+      candidates: input.candidates,
+      flowSteps: input.flowSteps,
+      intents: input.intents,
+      faq: input.faq,
+      productBlurb: input.productBlurb,
+      guideByStep: input.guideByStep,
+    });
+  }
+  if (!input.provider) {
+    return {
+      ok: false,
+      errors: ['No labeler or LLM provider'],
+      checklist: ['Set UIPILOT_LABELER=laya|mock or UIPILOT_LLM_*'],
+    };
+  }
+  return softLabelCandidates({
+    provider: input.provider,
+    candidates: input.candidates,
+    flowSteps: input.flowSteps,
+    intents: input.intents,
+    faq: input.faq,
+    productBlurb: input.productBlurb,
+  });
+}
 
 export async function softLabelCandidates(input: {
   provider: LlmProvider;

@@ -6,6 +6,7 @@
     { "path": "packages/mapper" },
     { "path": "packages/codegen" },
     { "path": "packages/ranker-train" },
+    { "path": "packages/laya-train" },
     { "path": "packages/recalibrate" },
     { "path": "packages/cli" }
   ]

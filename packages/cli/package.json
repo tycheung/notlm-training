@@ -16,6 +16,7 @@
     "@uipilot/ranker": "*",
     "@uipilot/schema": "*",
     "@uipilot-training/ranker-train": "*",
+    "@uipilot-training/laya-train": "*",
     "@uipilot-training/recalibrate": "*"
   },
   "scripts": { "build": "tsc -b" },
