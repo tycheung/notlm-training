@@ -46,12 +46,24 @@ Pack quality gates stay on operating uipilotCLI:
 export async function cmdPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
   if (!url) {
-    console.error('Usage: uipilot-training exchanges pull --url <endpoint> [--out <path>]');
+    console.error(
+      'Usage: uipilot-training feedback pull --url <endpoint> [--out <path>] [--token <export|jwt>]'
+    );
     process.exitCode = 1;
     return;
   }
   const outPath = takeFlag(args, '--out');
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const token =
+    takeFlag(args, '--token')?.trim() ||
+    (process.env.UIPILOT_MISSES_TOKEN || '').trim() ||
+    (process.env.UIPILOT_MISSES_EXPORT_TOKEN || '').trim();
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) {
+    // Prefer machine export header; also send Bearer for admin JWTs.
+    headers['X-UiPilot-Export-Token'] = token;
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
   const data = (await res.json()) as unknown;
   let exchanges;
