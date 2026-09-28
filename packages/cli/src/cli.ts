@@ -59,9 +59,11 @@ export async function cmdPull(args: string[]): Promise<void> {
     (process.env.UIPILOT_MISSES_EXPORT_TOKEN || '').trim();
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (token) {
-    // Prefer machine export header; also send Bearer for admin JWTs.
-    headers['X-UiPilot-Export-Token'] = token;
-    headers.Authorization = `Bearer ${token}`;
+    // Machine promote uses the shared export secret — do NOT also send it as
+    // Authorization Bearer (optional JWT auth would 401 on a non-JWT token).
+    const looksLikeJwt = token.split('.').length === 3;
+    if (looksLikeJwt) headers.Authorization = `Bearer ${token}`;
+    else headers['X-UiPilot-Export-Token'] = token;
   }
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
