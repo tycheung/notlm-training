@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   loadHomeJson,
@@ -106,6 +106,62 @@ function collectLabeled(home: string): {
   ingest(scenariosRaw, 'scenarios');
   ingest(corpusRaw, 'corpus');
 
+  // Capability catalogs → labeled rows from aliases.
+  const capabilityFiles = [
+    ['queries.json', 'queries', 'queryId'],
+    ['mutations.json', 'mutations', 'mutationId'],
+    ['tours.json', 'tours', 'tourId'],
+    ['search.json', 'search', 'searchId'],
+  ] as const;
+  for (const [file, key, expectKey] of capabilityFiles) {
+    const raw = loadPackJson(home, file);
+    if (!raw || typeof raw !== 'object') continue;
+    const list = (raw as Record<string, unknown>)[key];
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      if (!entry || typeof entry !== 'object') continue;
+      const e = entry as { id?: string; aliases?: string[]; title?: string };
+      if (typeof e.id !== 'string' || !e.id) continue;
+      const aliases = Array.isArray(e.aliases) ? e.aliases : [];
+      for (const alias of [e.title, ...aliases].filter(
+        (a): a is string => typeof a === 'string' && a.trim().length > 0
+      )) {
+        const utterance = alias.trim();
+        if (utterance.length > 120) continue;
+        byUtterance.set(utterance.toLowerCase(), {
+          utterance,
+          expect: { [expectKey]: e.id } as ScenarioExpect,
+          source: 'corpus',
+        });
+        corpusCount += 1;
+      }
+    }
+  }
+
+  // Optional Cursor synth draft.
+  const draftPath = join(home, 'drafts', 'capability-synth-20260929', 'utterances.json');
+  if (existsSync(draftPath)) {
+    try {
+      const draft = JSON.parse(readFileSync(draftPath, 'utf8')) as {
+        rows?: Array<{ utterance?: string; label?: ScenarioExpect & { ood?: boolean } }>;
+      };
+      for (const row of draft.rows ?? []) {
+        const utterance = typeof row.utterance === 'string' ? row.utterance.trim() : '';
+        if (!utterance || !row.label) continue;
+        const expect: ScenarioExpect = { ...row.label };
+        if (row.label.ood) expect.rawIntent = 'refuse';
+        byUtterance.set(utterance.toLowerCase(), {
+          utterance,
+          expect,
+          source: 'corpus',
+        });
+        corpusCount += 1;
+      }
+    } catch {
+      /* ignore bad draft */
+    }
+  }
+
   return { rows: [...byUtterance.values()], scenariosCount, corpusCount };
 }
 
@@ -114,6 +170,22 @@ function goldFromExpect(expect: ScenarioExpect): {
   isOod: number;
   faq: string;
 } {
+  const queryId = expect.queryId?.trim();
+  if (queryId) {
+    return { step: 'refuse', isOod: 0, faq: `query:${queryId}` };
+  }
+  const mutationId = expect.mutationId?.trim();
+  if (mutationId) {
+    return { step: 'refuse', isOod: 0, faq: `mutation:${mutationId}` };
+  }
+  const tourId = expect.tourId?.trim();
+  if (tourId) {
+    return { step: 'refuse', isOod: 0, faq: `tour:${tourId}` };
+  }
+  const searchId = expect.searchId?.trim();
+  if (searchId) {
+    return { step: 'refuse', isOod: 0, faq: `search:${searchId}` };
+  }
   const faqId = expect.faqId?.trim();
   if (faqId || expect.rawIntent === 'faq') {
     return { step: 'refuse', isOod: 0, faq: faqId ?? 'none' };
@@ -128,7 +200,7 @@ function goldFromExpect(expect: ScenarioExpect): {
   if (stepId) {
     return { step: stepId, isOod: 0, faq: 'none' };
   }
-  if (expect.rawIntent === 'refuse') {
+  if (expect.rawIntent === 'refuse' || expect.rawIntent === 'ood') {
     return { step: 'refuse', isOod: 1, faq: 'none' };
   }
   return { step: 'refuse', isOod: 1, faq: 'none' };
@@ -162,6 +234,22 @@ function buildFaqCriteria(faqIds: string[], faqs: FaqEntry[]): Record<string, st
   const criteria: Record<string, string> = { none: 'not a FAQ' };
   for (const id of faqIds) {
     if (id === 'none') continue;
+    if (id.startsWith('query:')) {
+      criteria[id] = `data query ${id.slice(6)}`.slice(0, 80);
+      continue;
+    }
+    if (id.startsWith('mutation:')) {
+      criteria[id] = `mutation ${id.slice(9)}`.slice(0, 80);
+      continue;
+    }
+    if (id.startsWith('tour:')) {
+      criteria[id] = `tour ${id.slice(5)}`.slice(0, 80);
+      continue;
+    }
+    if (id.startsWith('search:')) {
+      criteria[id] = `search ${id.slice(7)}`.slice(0, 80);
+      continue;
+    }
     const entry = faqs.find((f) => f.id === id);
     const title = (entry?.aliases ?? [])[0] ?? id;
     criteria[id] = String(title).slice(0, 80);
@@ -220,11 +308,42 @@ export function recordsFromPack(
   const steps = asSteps(flow);
   const aliases = aliasesMap(intents);
   const faqs = faqList(faq);
+  // Capability catalog ids piggy-back on FAQ choice head with prefixes.
+  const capabilityFaqIds: string[] = [];
+  for (const [file, key] of [
+    ['queries.json', 'queries'],
+    ['mutations.json', 'mutations'],
+    ['tours.json', 'tours'],
+    ['search.json', 'search'],
+  ] as const) {
+    const raw = loadPackJson(home, file);
+    const list =
+      raw && typeof raw === 'object'
+        ? (raw as Record<string, unknown>)[key]
+        : null;
+    if (!Array.isArray(list)) continue;
+    const prefix =
+      key === 'queries'
+        ? 'query'
+        : key === 'mutations'
+          ? 'mutation'
+          : key === 'tours'
+            ? 'tour'
+            : 'search';
+    for (const entry of list) {
+      const id = (entry as { id?: string })?.id;
+      if (typeof id === 'string' && id) capabilityFaqIds.push(`${prefix}:${id}`);
+    }
+  }
   const { rows, scenariosCount, corpusCount } = collectLabeled(home);
 
   const allStepIds = steps.map((s) => s.id).filter((id): id is string => typeof id === 'string');
   const fullStepIds = [...allStepIds, 'refuse'];
-  const fullFaqIds = [...faqs.map((f) => f.id).filter((id): id is string => typeof id === 'string'), 'none'];
+  const fullFaqIds = [
+    ...faqs.map((f) => f.id).filter((id): id is string => typeof id === 'string'),
+    ...capabilityFaqIds,
+    'none',
+  ];
 
   const oodInstructions = `Is this ask outside ${productRole}?`;
 

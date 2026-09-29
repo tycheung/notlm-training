@@ -6,6 +6,10 @@ export type ScenarioExpect = {
   goBack?: boolean;
   isCorrection?: boolean;
   faqId?: string | null;
+  queryId?: string | null;
+  mutationId?: string | null;
+  tourId?: string | null;
+  searchId?: string | null;
   answer?: string;
 };
 
