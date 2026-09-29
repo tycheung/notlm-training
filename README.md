@@ -98,6 +98,10 @@ Convert pack + scenarios to Laya typed-decision JSONL, then fine-tune on a **loc
 (GPU optional). Nightly server **promote** (Celery) updates CPU pack aliases + `ranker.json` only —
 it never runs `laya train` on the server.
 
+**Runtime cold path (sealed `uipilot`, not this repo):** NLU miss → host `fallbackLlm` (Laya) →
+optional host `secondaryFallbackLlm` (LLM) when `features.llmFallbackOnLayaMiss` is true.
+`feedback` MissExchanges may therefore carry `provider.chain=laya_then_llm` after a Laya refuse.
+
 ```bash
 npx uipilot-training laya convert ./my-app --mode=full
 npx uipilot-training laya train ./my-app --mode=light --dry-run   # CI-safe stub
