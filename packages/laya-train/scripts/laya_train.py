@@ -199,6 +199,10 @@ def _train_rlcd(
     output_dir: Path,
     epochs: int,
     micro_batch: int,
+    *,
+    plateau_patience: int = 0,
+    plateau_min_delta: float = 0.05,
+    epoch_offset: int = 0,
 ) -> dict[str, Any]:
     import torch
     from huggingface_hub import snapshot_download
@@ -206,7 +210,7 @@ def _train_rlcd(
     from transformers import AutoTokenizer
     from laya.common import build_model, proper_reward
 
-    # model_dir may already be a local snapshot path
+    # model_dir may already be a local snapshot / fine-tune path
     if not os.path.isdir(os.path.join(model_dir, "encoder")):
         model_dir = snapshot_download(model_dir)
 
@@ -260,19 +264,28 @@ def _train_rlcd(
 
     print(
         f"RLCD train: {len(train_items)} items, {n_calib} calib, "
-        f"{epochs} epochs, micro_batch={micro_batch}"
+        f"{epochs} epochs, micro_batch={micro_batch}, "
+        f"init={model_dir}, plateau_patience={plateau_patience}, "
+        f"plateau_min_delta={plateau_min_delta}"
     )
     t0 = time.time()
     last_avg = 0.0
+    best_avg = float("inf")
+    stale = 0
+    epoch_history: list[float] = []
+    stopped_early = False
+    epochs_ran = 0
 
     for epoch in range(epochs):
-        random.seed(42 + epoch)
+        random.seed(42 + epoch + epoch_offset)
         random.shuffle(train_items)
         epoch_loss, n_batches = 0.0, 0
         optimizer.zero_grad(set_to_none=True)
         accum_step = 0
         progress = epoch / max(1, epochs - 1)
         sigma = SIGMA_START + (SIGMA_END - SIGMA_START) * progress
+        display_epoch = epoch_offset + epoch + 1
+        display_total = epoch_offset + epochs
 
         for b_idx in range(0, len(train_items), micro_batch):
             chunk = train_items[b_idx : b_idx + micro_batch]
@@ -297,6 +310,7 @@ def _train_rlcd(
             z = logits.detach().unsqueeze(0) + eps
             q = torch.softmax(z.masked_fill(~mask, -1e4), -1)
 
+            # Reward / RLCD loss (unchanged from prior body — continued below)
             with torch.no_grad():
                 r = proper_reward(
                     q,
@@ -331,13 +345,15 @@ def _train_rlcd(
             n_batches += 1
             if n_batches % 25 == 0:
                 print(
-                    f" Epoch {epoch+1}/{epochs} | Step {n_batches} | "
+                    f" Epoch {display_epoch}/{display_total} | Step {n_batches} | "
                     f"Loss {loss.item()*GRAD_ACCUM:.4f} | Reward {r.mean().item():.3f}"
                 )
 
         last_avg = epoch_loss / max(1, n_batches)
+        epochs_ran = epoch + 1
+        epoch_history.append(last_avg)
         print(
-            f"=== Epoch {epoch+1}/{epochs} done in {time.time()-t0:.1f}s | "
+            f"=== Epoch {display_epoch}/{display_total} done in {time.time()-t0:.1f}s | "
             f"avg_loss={last_avg:.4f} ==="
         )
 
@@ -349,11 +365,34 @@ def _train_rlcd(
         tok.save_pretrained(str(ckpt_dir / "tokenizer"))
         (ckpt_dir / "checkpoint_meta.json").write_text(
             json.dumps(
-                {"epoch": epoch + 1, "total_epochs": epochs, "avg_loss": last_avg},
+                {
+                    "epoch": display_epoch,
+                    "total_epochs": display_total,
+                    "avg_loss": last_avg,
+                    "epoch_history": epoch_history,
+                },
                 indent=2,
             ),
             encoding="utf-8",
         )
+
+        improved = last_avg < (best_avg - plateau_min_delta)
+        if improved:
+            best_avg = last_avg
+            stale = 0
+        else:
+            stale += 1
+            print(
+                f"Plateau check: no improve ≥{plateau_min_delta} "
+                f"(best={best_avg:.4f}, stale={stale}/{plateau_patience or 'off'})"
+            )
+            if plateau_patience > 0 and stale >= plateau_patience:
+                print(
+                    f"Early stop: plateau after {epochs_ran} continue-epochs "
+                    f"(best_avg_loss={best_avg:.4f})"
+                )
+                stopped_early = True
+                break
 
     # Calibration
     print("Fitting calibration temperatures...")
@@ -418,13 +457,31 @@ def _train_rlcd(
         "rows_items": len(items),
         "train_items": len(train_items),
         "calib_items": n_calib,
-        "epochs": epochs,
+        "epochs": epochs_ran,
+        "epochs_requested": epochs,
+        "epoch_offset": epoch_offset,
         "avg_loss": last_avg,
+        "best_avg_loss": best_avg if best_avg < float("inf") else last_avg,
+        "epoch_history": epoch_history,
+        "stopped_early": stopped_early,
         "temperature": fitted_temps,
         "elapsed_sec": round(elapsed, 1),
         "device": str(device),
         "base_model": model_dir,
     }
+
+
+def _resolve_model_dir(base: str, init_from: str | None) -> str:
+    """Prefer a local fine-tune / snapshot directory; else Hub download."""
+    from huggingface_hub import snapshot_download
+
+    candidate = (init_from or base).strip()
+    path = Path(candidate)
+    if path.is_dir() and (path / "encoder").is_dir() and (path / "model.safetensors").is_file():
+        print(f"Using local weights: {path.resolve()}")
+        return str(path.resolve())
+    print(f"Downloading base model {candidate}...")
+    return snapshot_download(candidate)
 
 
 def main() -> int:
@@ -434,7 +491,29 @@ def main() -> int:
     p.add_argument("--mode", default="full", choices=("full", "light"))
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--base", default=os.getenv("UIPILOT_LAYA_BASE", "convaiinnovations/laya"))
+    p.add_argument(
+        "--init-from",
+        default=os.getenv("UIPILOT_LAYA_INIT_FROM", ""),
+        help="Local fine-tune dir to continue from (model.safetensors + encoder).",
+    )
     p.add_argument("--epochs", type=int, default=int(os.getenv("UIPILOT_LAYA_EPOCHS", "3")))
+    p.add_argument(
+        "--epoch-offset",
+        type=int,
+        default=int(os.getenv("UIPILOT_LAYA_EPOCH_OFFSET", "0")),
+        help="Prior completed epochs (for logging only).",
+    )
+    p.add_argument(
+        "--plateau-patience",
+        type=int,
+        default=int(os.getenv("UIPILOT_LAYA_PLATEAU_PATIENCE", "0")),
+        help="Stop after N epochs without avg_loss improve ≥ min-delta (0=disabled).",
+    )
+    p.add_argument(
+        "--plateau-min-delta",
+        type=float,
+        default=float(os.getenv("UIPILOT_LAYA_PLATEAU_MIN_DELTA", "0.05")),
+    )
     p.add_argument(
         "--micro-batch",
         type=int,
@@ -476,10 +555,8 @@ def main() -> int:
     os.environ.setdefault("USE_TF", "0")
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-    from huggingface_hub import snapshot_download
-
-    print(f"Downloading base model {args.base}...")
-    model_dir = snapshot_download(args.base)
+    init_from = (args.init_from or "").strip() or None
+    model_dir = _resolve_model_dir(args.base, init_from)
     print(f"Building training items from {train_path}...")
     items = _build_items(train_path, model_dir)
     if not items:
@@ -488,7 +565,35 @@ def main() -> int:
         return 1
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    metrics = _train_rlcd(items, model_dir, out_dir, args.epochs, args.micro_batch)
+    # If continuing into the same dir as init-from, copy weights to a temp init
+    # so we don't read a half-written file mid-epoch.
+    train_init = model_dir
+    if init_from and Path(model_dir).resolve() == out_dir.resolve():
+        staging = out_dir.parent / "_init_resume"
+        if staging.exists():
+            shutil.rmtree(staging)
+        staging.mkdir(parents=True, exist_ok=True)
+        for name in ("model.safetensors", "rl_agent_config.json", "README.md"):
+            src = out_dir / name
+            if src.is_file():
+                shutil.copy2(src, staging / name)
+        for sub in ("encoder", "tokenizer"):
+            src = out_dir / sub
+            if src.is_dir():
+                shutil.copytree(src, staging / sub)
+        train_init = str(staging.resolve())
+        print(f"Staged resume weights at {train_init}")
+
+    metrics = _train_rlcd(
+        items,
+        train_init,
+        out_dir,
+        args.epochs,
+        args.micro_batch,
+        plateau_patience=args.plateau_patience,
+        plateau_min_delta=args.plateau_min_delta,
+        epoch_offset=args.epoch_offset,
+    )
     metrics["rows"] = rows
     metrics["mode"] = args.mode
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
