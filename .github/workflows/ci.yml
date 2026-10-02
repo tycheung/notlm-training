@@ -20,6 +20,7 @@ jobs:
         with:
           repository: tycheung/uipilot
           path: uipilot
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -29,7 +30,7 @@ jobs:
             uipilot/package-lock.json
             uipilot-training/package-lock.json
 
-      - name: Build operating runtime deps (file: links)
+      - name: Build operating runtime deps (file links)
         working-directory: uipilot
         run: |
           npm ci
