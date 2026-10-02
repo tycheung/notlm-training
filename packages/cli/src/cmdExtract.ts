@@ -113,3 +113,62 @@ export async function cmdExtractStatic(args: string[]): Promise<void> {
     `Wrote structured-draft.json + inventory (${merged.controls.length} controls) + checklist (${checklistItems.length} items)`
   );
 }
+
+const PACK_REQUIRED = ['manifest', 'flow', 'controls', 'intents', 'binders'] as const;
+
+/**
+ * Host-oriented workshop: extract from a real host SPA into that host's `.uipilot/`.
+ * Product packs deploy from the host tree (e.g. react-frontend/.uipilot/pack) —
+ * never from sealed uipilot/packs/.
+ */
+export async function cmdExtractHost(args: string[]): Promise<void> {
+  const hostRoot = args.find((a) => !a.startsWith('-'));
+  if (!hostRoot) {
+    console.error('Usage: uipilot-training extract host <hostAppRoot>');
+    console.error('Example: uipilot-training extract host ../react-frontend');
+    process.exitCode = 1;
+    return;
+  }
+  const root = resolve(hostRoot);
+  if (!pathExists(root)) {
+    console.error(`Host root not found: ${root}`);
+    process.exitCode = 1;
+    return;
+  }
+  const { home } = resolveUipilotHome(root);
+  if (!pathExists(home)) {
+    console.error(
+      `Missing UiPilot home: ${home}\nRun: uipilotCLI init ${root}`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const srcCandidates = ['src', 'app', 'apps/web/src'].map((r) => join(root, r));
+  const srcPath = srcCandidates.find((p) => pathExists(p)) ?? join(root, 'src');
+  if (!pathExists(srcPath)) {
+    console.error(
+      `No src tree under ${root} (tried src/, app/). Pass extract static with --src instead.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  await cmdExtractStatic([srcPath, root]);
+
+  const packDir = join(home, 'pack');
+  const missing = PACK_REQUIRED.filter(
+    (k) => !pathExists(join(packDir, `${k}.json`))
+  );
+  if (missing.length) {
+    console.warn(
+      `Pack pieces still missing under ${packDir}: ${missing.join(', ')} — author/map next.`
+    );
+  } else {
+    console.log(`Deploy pack ready at ${packDir}`);
+    console.log(
+      'Next: review drafts → pack accept → host green/CloudFront deploy. Laya weights stay on the backend promote path.'
+    );
+  }
+}
+

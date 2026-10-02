@@ -28,12 +28,17 @@ export function usage(): void {
   uipilot-training auto pause|resume|stop [dir]
   uipilot-training auto ranker [dir]   # explicit ranker retrain (also auto after tune)
 
+  uipilot-training sharpen [dir] [--per-lane=5000] [--pass-rate=0.999] [--max-rounds=20]
+                           [--lanes=faq,goto,…] [--fixture] [--no-write]
+    # System One: LLM preset pre-prompts → N×13 lanes → score → patch pack → iterate
+
   uipilot-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
   uipilot-training feedback conversations pull|analyze …
   # legacy: exchanges pull|draft|fold ; conversations analyze
 
 Authoring (not training modes):
   uipilot-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
+  uipilot-training extract host <hostAppRoot>   # workshop → host .uipilot/pack (deploy SoT)
   uipilot-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
 
 Legacy aliases (deprecated): train auto, exchanges *, conversations *, misses *, ranker train
@@ -186,6 +191,11 @@ export async function runCli(argv: string[]): Promise<void> {
     if (cmd === 'feedback') {
       const { cmdFeedback } = await import('./cmdFeedback.js');
       await cmdFeedback(argv.slice(1));
+      return;
+    }
+    if (cmd === 'sharpen') {
+      const { cmdSharpen } = await import('./cmdSharpen.js');
+      await cmdSharpen(argv.slice(1));
       return;
     }
     // Legacy aliases → new modes

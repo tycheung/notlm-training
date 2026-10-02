@@ -4,6 +4,7 @@ import {
   cmdChecklistMd,
   cmdDagGenerate,
   cmdExtractStatic,
+  cmdExtractHost,
   cmdIntentsTune,
   cmdInventoryAttach,
   cmdInventoryCrawl,
@@ -83,8 +84,13 @@ export async function runFatCli(argv: string[]): Promise<void> {
       else throw new Error('Usage: inventory crawl|attach …');
       break;
     case 'extract':
-      if (sub !== 'static') throw new Error('Usage: extract static …');
+      if (sub === 'host') {
+        await cmdExtractHost(rest);
+        break;
+      }
+      if (sub !== 'static') throw new Error('Usage: extract static … | extract host <hostAppRoot>');
       await cmdExtractStatic(rest);
+      break;
       break;
     case 'trace':
       if (sub === 'ingest') await cmdTraceIngest(rest);

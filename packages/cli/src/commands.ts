@@ -22,7 +22,7 @@ import {
 } from './uipilotHome.js';
 
 export { cmdInventoryAttach, cmdInventoryCrawl } from './cmdInventory.js';
-export { cmdExtractStatic } from './cmdExtract.js';
+export { cmdExtractStatic, cmdExtractHost } from './cmdExtract.js';
 export { cmdTraceIngest, cmdTraceNew } from './cmdTrace.js';
 export {
   cmdIntentsTune,

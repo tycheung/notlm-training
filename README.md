@@ -55,7 +55,31 @@ Defaults: pass-rate/confidence 0.99 → window 459; max CPU/RAM 80%. BYO model v
 Runtime decisions stay **System One** (calibrated ranker/rules); LLM growth stays
 offline in `feedback` / soft-label authoring.
 
-### 2) `feedback` — chat / miss logs → targeted fix
+### 2) `sharpen` — System One capability stress (13 lanes)
+
+Same method used to sharpen VictoryBowling: preset LLM **pre-prompts per lane**,
+generate distinct domain utterances (default **5000 × 13 lanes**), score with the
+local System One scorer, patch pack language JSON, loop until `hardFails=0` or
+pass-rate ≥ **0.999**.
+
+```bash
+# Full run (needs UIPILOT_LLM_*)
+npx uipilot-training sharpen ./my-app --per-lane=5000 --pass-rate=0.999
+
+# CI / offline morph from pack seeds (no LLM)
+npx uipilot-training sharpen ./my-app --fixture --per-lane=5 --pass-rate=0.5
+
+# Subset of lanes
+npx uipilot-training sharpen ./my-app --lanes=faq,goto,ood --per-lane=100
+```
+
+Writes growing pack pieces under `.uipilot/pack/` (unless `--no-write`) and a
+report at `.uipilot/train-sharpen/report.json`.
+
+Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`,
+`tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
+
+### 3) `feedback` — chat / miss logs → targeted fix
 
 ```bash
 npx uipilot-training feedback pull --url …/uipilot/misses?exchanges_only=true --out ex.json
@@ -84,6 +108,26 @@ npx uipilot-training map|tune|prepare ./my-app
 npx uipilot-training scenarios saturate ./my-app --fixture
 npx uipilot-training intents tune ./my-app
 npx uipilot-training pack author|accept …
+npx uipilot-training extract static <srcDir> [packDir]
+npx uipilot-training extract host ../react-frontend   # product pack workshop → host .uipilot/
+```
+
+### Product packs (host deploy SoT)
+
+Sealed **`uipilot`** only ships demo packs. Additional / brand packs live in the **host app**:
+
+| Step | Where |
+|------|--------|
+| Extract / map / tune / accept | this repo against `./react-frontend` (or any host) |
+| Deploy unit | `react-frontend/.uipilot/pack/*.json` → FE green / CloudFront |
+| Laya weights | backend promote path (not FE pack) |
+
+```bash
+npx uipilot-training feedback pull --url … --out misses.json
+npx uipilot-training feedback draft --from misses.json ../react-frontend
+npx uipilot-training feedback fold --from .uipilot/drafts/…/draft.json ../react-frontend
+npx uipilot-training feedback accept <draftId> ../react-frontend
+# then commit FE pack + green deploy
 ```
 
 ## Providers

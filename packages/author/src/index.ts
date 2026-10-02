@@ -171,3 +171,36 @@ export { composerNebulaBatch, VB_NON_FEATURE_FAQ } from './trainAuto/nebulaGener
 export { ALIAS_SOFT_CAP, FAQ_ALIAS_SOFT_CAP, PARSE_LATENCY_P95_BUDGET_MS } from './limits.js';
 export { e2eScenariosFromFlow, type E2eScenario } from './e2eScenarios.js';
 export { glossaryStubsFromControls, type GlossaryStub } from './glossaryCrawl.js';
+
+export {
+  CAPABILITY_LANES,
+  LANE_EXPECT,
+  laneGeneratePrePrompt,
+  lanePatchPrePrompt,
+  loadStressPack,
+  scoreCase,
+  scoreSuite,
+  loadPackJsonFromFolder,
+  resolvePackFolder,
+  catalogDigest,
+  morphCasesForLane,
+  morphFullSuite,
+  generateLaneCases,
+  generateFullSuite,
+  fixturePatchFromFails,
+  proposePackPatch,
+  applyPackPatch,
+  writePackFolder,
+  writeSharpenReport,
+  DEFAULT_SHARPEN,
+  resolveSharpenConfig,
+  runSharpenLoop,
+  type CapabilityLane,
+  type LaneExpect,
+  type StressCase,
+  type ScoreResult,
+  type SuiteSummary,
+  type PackPatch,
+  type SharpenConfig,
+  type SharpenReport,
+} from './capabilityStress/index.js';
