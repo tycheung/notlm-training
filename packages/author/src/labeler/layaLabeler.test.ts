@@ -16,12 +16,12 @@ describe('createMockLayaLabeler', () => {
   });
 
   it('createLabelerFromEnv respects mock', () => {
-    const prev = process.env.UIPILOT_LABELER;
-    process.env.UIPILOT_LABELER = 'mock';
+    const prev = process.env.NOTLM_LABELER;
+    process.env.NOTLM_LABELER = 'mock';
     expect(createLabelerFromEnv()?.id).toBe('laya-mock');
-    process.env.UIPILOT_LABELER = 'llm';
+    process.env.NOTLM_LABELER = 'llm';
     expect(createLabelerFromEnv()).toBeUndefined();
-    if (prev === undefined) delete process.env.UIPILOT_LABELER;
-    else process.env.UIPILOT_LABELER = prev;
+    if (prev === undefined) delete process.env.NOTLM_LABELER;
+    else process.env.NOTLM_LABELER = prev;
   });
 });

@@ -1,9 +1,9 @@
 /**
  * Minimal ONNX ModelProto for intent Gemm+Softmax.
  * Field numbers follow onnx.proto (ModelProto / GraphProto / NodeProto / TensorProto).
- * Owned by training — operating @uipilot/ranker only loads prebuilt bytes.
+ * Owned by training — operating @notlm/ranker only loads prebuilt bytes.
  */
-import type { RankerModelJson } from '@uipilot/ranker';
+import type { RankerModelJson } from '@notlm/ranker';
 
 function encodeVarint(n: number): number[] {
   const out: number[] = [];
@@ -112,7 +112,7 @@ export function exportIntentOnnx(model: RankerModelJson): Uint8Array {
   ]);
 
   const graph: number[] = [
-    ...str(2, 'uipilot_intent_ranker'),
+    ...str(2, 'notlm_intent_ranker'),
     ...lenDelim(1, gemm),
     ...lenDelim(1, soft),
     ...lenDelim(11, valueInfo('X', [1, D])),
@@ -125,7 +125,7 @@ export function exportIntentOnnx(model: RankerModelJson): Uint8Array {
   const modelProto = [
     ...int64(1, 8),
     ...lenDelim(8, opset),
-    ...str(2, 'uipilot'),
+    ...str(2, 'notlm'),
     ...lenDelim(7, graph),
   ];
   return new Uint8Array(modelProto);

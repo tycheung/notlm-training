@@ -10,10 +10,10 @@ import {
   deriveWindowSize,
   makeEvalItem,
   type PackIO,
-} from '@uipilot/author';
-import type { IntentParsePack } from '@uipilot/core';
-import { createProviderFromEnv } from '@uipilot/llm';
-import { loadPackFolderJson, pathExists, resolveUipilotHome } from './uipilotHome.js';
+} from '@notlm/author';
+import type { IntentParsePack } from '@notlm/core';
+import { createProviderFromEnv } from '@notlm/llm';
+import { loadPackFolderJson, pathExists, resolveNotlmHome } from './notlmHome.js';
 import { cmdPackAccept } from './commands.js';
 
 function parseFlag(args: string[], name: string): string | undefined {
@@ -121,7 +121,7 @@ function rebuildPackIo(home: string): PackIO {
         scenarios: nextScenarios,
         faq: faqMerged.faq,
       });
-      const { projectRoot } = resolveUipilotHome(join(home, '..'));
+      const { projectRoot } = resolveNotlmHome(join(home, '..'));
       await cmdPackAccept(draftId, projectRoot);
       return {
         ok: true,
@@ -147,9 +147,9 @@ function rebuildPackIo(home: string): PackIO {
 
 export async function cmdTrainAuto(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home}`);
+    console.error(`Missing NotLM home: ${home}`);
     process.exitCode = 1;
     return;
   }
@@ -164,13 +164,13 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
   const maxIterRaw = parseFlag(args, '--max-iterations');
   const fixture =
     hasFlag(args, '--fixture') ||
-    process.env.UIPILOT_SATURATE_FIXTURE === '1' ||
-    process.env.UIPILOT_TRAIN_AUTO_FIXTURE === '1';
+    process.env.NOTLM_SATURATE_FIXTURE === '1' ||
+    process.env.NOTLM_TRAIN_AUTO_FIXTURE === '1';
   const composer =
-    hasFlag(args, '--composer') || process.env.UIPILOT_TRAIN_AUTO_COMPOSER === '1';
+    hasFlag(args, '--composer') || process.env.NOTLM_TRAIN_AUTO_COMPOSER === '1';
   const untilSoftCap =
     hasFlag(args, '--until-soft-cap') ||
-    process.env.UIPILOT_TRAIN_AUTO_UNTIL_SOFT_CAP === '1';
+    process.env.NOTLM_TRAIN_AUTO_UNTIL_SOFT_CAP === '1';
   const resume = hasFlag(args, '--resume');
 
   const config = resolveTrainAutoConfig({
@@ -201,7 +201,7 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
       console.error(
         err instanceof Error
           ? err.message
-          : `${String(err)} — use --fixture, --composer, or set UIPILOT_LLM_*`
+          : `${String(err)} — use --fixture, --composer, or set NOTLM_LLM_*`
       );
       process.exitCode = 1;
       return;
@@ -234,7 +234,7 @@ export async function cmdTrainAuto(args: string[]): Promise<void> {
 
 export async function cmdTrainPause(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   const d = ensureTrainAutoDir(home);
   writeControl(d, 'paused', 'train pause');
   console.log(`Paused → ${join(d, 'control.json')}`);
@@ -248,7 +248,7 @@ export async function cmdTrainResume(args: string[]): Promise<void> {
 
 export async function cmdTrainStop(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   const d = ensureTrainAutoDir(home);
   writeControl(d, 'stop', 'train stop');
   console.log(`Stop requested → ${join(d, 'control.json')}`);

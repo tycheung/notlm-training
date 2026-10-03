@@ -3,14 +3,14 @@ import {
   mergeGuideIdScan,
   runStructuredExtract,
   type ControlInventory,
-} from '@uipilot/mapper';
+} from '@notlm/mapper';
 import {
   join,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function positionalDir(args: string[], flagNames: Set<string>): string | undefined {
   for (let i = 0; i < args.length; i++) {
@@ -52,16 +52,16 @@ export async function cmdExtractStatic(args: string[]): Promise<void> {
         : undefined;
 
   if (!srcPath) {
-    console.error('Usage: uipilot-training extract static [dir] --src <path>');
-    console.error('Or:    uipilot-training extract static <srcDir> [packDir]');
+    console.error('Usage: notlm-training extract static [dir] --src <path>');
+    console.error('Or:    notlm-training extract static <srcDir> [packDir]');
     console.error('Tip: npm may swallow --src; pass a bare source path instead.');
     process.exitCode = 1;
     return;
   }
 
-  const { home } = resolveUipilotHome(dir && dir !== srcPath ? dir : undefined);
+  const { home } = resolveNotlmHome(dir && dir !== srcPath ? dir : undefined);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -117,15 +117,15 @@ export async function cmdExtractStatic(args: string[]): Promise<void> {
 const PACK_REQUIRED = ['manifest', 'flow', 'controls', 'intents', 'binders'] as const;
 
 /**
- * Host-oriented workshop: extract from a real host SPA into that host's `.uipilot/`.
- * Product packs deploy from the host tree (e.g. react-frontend/.uipilot/pack) —
- * never from sealed uipilot/packs/.
+ * Host-oriented workshop: extract from a real host SPA into that host's `.notlm/`.
+ * Product packs deploy from the host tree (e.g. react-frontend/.notlm/pack) —
+ * never from sealed notlm/packs/.
  */
 export async function cmdExtractHost(args: string[]): Promise<void> {
   const hostRoot = args.find((a) => !a.startsWith('-'));
   if (!hostRoot) {
-    console.error('Usage: uipilot-training extract host <hostAppRoot>');
-    console.error('Example: uipilot-training extract host ../react-frontend');
+    console.error('Usage: notlm-training extract host <hostAppRoot>');
+    console.error('Example: notlm-training extract host ../react-frontend');
     process.exitCode = 1;
     return;
   }
@@ -135,10 +135,10 @@ export async function cmdExtractHost(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const { home } = resolveUipilotHome(root);
+  const { home } = resolveNotlmHome(root);
   if (!pathExists(home)) {
     console.error(
-      `Missing UiPilot home: ${home}\nRun: uipilotCLI init ${root}`
+      `Missing NotLM home: ${home}\nRun: notlmCLI init ${root}`
     );
     process.exitCode = 1;
     return;

@@ -5,7 +5,7 @@ import {
 } from './commands.js';
 import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { runIntentsTuneIfPossible } from './cmdScenariosAsk.js';
-import { pathExists, resolveUipilotHome } from './uipilotHome.js';
+import { pathExists, resolveNotlmHome } from './notlmHome.js';
 
 function hasFlag(args: string[], name: string): boolean {
   return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
@@ -32,18 +32,18 @@ function positionalDir(args: string[]): string | undefined {
 
 export async function cmdMap(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   const withLlm = hasFlag(args, '--llm');
 
   const srcIdx = args.indexOf('--src');
   if (srcIdx >= 0 || args.some((a) => a === '--src')) {
     await cmdExtractStatic(args);
-  } else if (process.env.UIPILOT_MAP_SRC) {
-    await cmdExtractStatic(['--src', process.env.UIPILOT_MAP_SRC, dir].filter(Boolean) as string[]);
+  } else if (process.env.NOTLM_MAP_SRC) {
+    await cmdExtractStatic(['--src', process.env.NOTLM_MAP_SRC, dir].filter(Boolean) as string[]);
   }
 
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -62,9 +62,9 @@ export async function cmdMap(args: string[]): Promise<void> {
  */
 export async function cmdTune(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -72,8 +72,8 @@ export async function cmdTune(args: string[]): Promise<void> {
   // Default fixture-friendly for CI unless LLM env present and --llm-generate
   const forceFixture =
     hasFlag(args, '--fixture') ||
-    process.env.UIPILOT_SATURATE_FIXTURE === '1' ||
-    !process.env.UIPILOT_LLM_PROVIDER;
+    process.env.NOTLM_SATURATE_FIXTURE === '1' ||
+    !process.env.NOTLM_LLM_PROVIDER;
 
   const saturateArgs = [...args];
   if (forceFixture && !hasFlag(saturateArgs, '--fixture')) {
@@ -84,11 +84,11 @@ export async function cmdTune(args: string[]): Promise<void> {
   await cmdScenariosSaturate(saturateArgs);
   if (process.exitCode && process.exitCode !== 0) return;
 
-  if (!forceFixture || process.env.UIPILOT_LLM_PROVIDER) {
+  if (!forceFixture || process.env.NOTLM_LLM_PROVIDER) {
     console.log('tune: intents tune…');
     await runIntentsTuneIfPossible(dir);
   } else {
-    console.log('tune: skip intents tune (fixture / no UIPILOT_LLM_PROVIDER)');
+    console.log('tune: skip intents tune (fixture / no NOTLM_LLM_PROVIDER)');
   }
 }
 

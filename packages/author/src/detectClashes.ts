@@ -1,4 +1,4 @@
-import { parseUtterance, type IntentParsePack, type StepId } from '@uipilot/core';
+import { parseUtterance, type IntentParsePack, type StepId } from '@notlm/core';
 
 export type ClashGroup = {
   id: string;

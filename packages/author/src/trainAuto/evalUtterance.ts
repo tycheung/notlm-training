@@ -1,5 +1,5 @@
-import type { IntentParsePack, ParseUtteranceResult } from '@uipilot/core';
-import { parseUtterance } from '@uipilot/core';
+import type { IntentParsePack, ParseUtteranceResult } from '@notlm/core';
+import { parseUtterance } from '@notlm/core';
 import type { EvalExpectation, EvalItem } from './types.js';
 
 export function scoreUtterance(

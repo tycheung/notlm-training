@@ -27,7 +27,7 @@ function itemMeta(item: ChecklistItem): string {
 
 export function checklistToMarkdown(checklist: ChecklistJson | ChecklistItem[]): string {
   const items = Array.isArray(checklist) ? checklist : (checklist.items ?? []);
-  const lines: string[] = ['# UiPilot checklist', ''];
+  const lines: string[] = ['# NotLM checklist', ''];
 
   if (items.length === 0) {
     lines.push('_No items._', '');

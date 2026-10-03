@@ -2,8 +2,8 @@
  * Candidate generation for train auto (fixture + LLM).
  */
 
-import type { IntentParsePack } from '@uipilot/core';
-import type { LlmProvider } from '@uipilot/llm';
+import type { IntentParsePack } from '@notlm/core';
+import type { LlmProvider } from '@notlm/llm';
 import { extractJsonText } from '../parseModelJson.js';
 import { generateScenarioCandidates } from '../saturation/generateCandidates.js';
 

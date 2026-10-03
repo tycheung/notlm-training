@@ -1,4 +1,4 @@
-import { parseUtterance, type IntentParsePack, type ParseUtteranceResult } from '@uipilot/core';
+import { parseUtterance, type IntentParsePack, type ParseUtteranceResult } from '@notlm/core';
 import type { ParseSignatureBucket } from './types.js';
 
 export function parseSignatureFromResult(result: ParseUtteranceResult): ParseSignatureBucket {

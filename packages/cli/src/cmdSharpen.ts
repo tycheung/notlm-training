@@ -1,10 +1,10 @@
 /**
- * Product training mode: `uipilot-training sharpen`
+ * Product training mode: `notlm-training sharpen`
  * VB System One loop — LLM (or fixture morph) generates N×13 lane prompts,
  * scores against pack, patches language JSON, iterates to hardFails≈0 / 99.9%.
  */
 import { join } from 'node:path';
-import { createProviderFromEnv } from '@uipilot/llm';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   loadPackJsonFromFolder,
   resolvePackFolder,
@@ -12,8 +12,8 @@ import {
   runSharpenLoop,
   CAPABILITY_LANES,
   type CapabilityLane,
-} from '@uipilot/author';
-import { resolveUipilotHome, pathExists, ensureDir } from './uipilotHome.js';
+} from '@notlm/author';
+import { resolveNotlmHome, pathExists, ensureDir } from './notlmHome.js';
 
 function takeFlag(args: string[], name: string): string | undefined {
   const eq = args.find((a) => a.startsWith(`${name}=`));
@@ -38,7 +38,7 @@ function positionalDir(args: string[]): string | undefined {
 
 export async function cmdSharpen(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home, projectRoot } = resolveUipilotHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   const packDir = resolvePackFolder(
     pathExists(join(home, 'pack', 'manifest.json')) ? home : projectRoot
   );

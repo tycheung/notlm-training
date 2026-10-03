@@ -1,4 +1,4 @@
-import type { IntentParsePack, StepId } from '@uipilot/core';
+import type { IntentParsePack, StepId } from '@notlm/core';
 import { describe, expect, it } from 'vitest';
 import { clashDensity, detectClashes } from './detectClashes.js';
 import { buildContextTreePlan, pickContextMode } from './saturation/contextTree.js';

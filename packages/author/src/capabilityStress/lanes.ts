@@ -119,7 +119,7 @@ export function laneGeneratePrePrompt(input: {
       'discourse repair: meant-the-other, number picks, cancel that choice, nevermind',
   };
   return [
-    'You generate DISTINCT natural-language user utterances for UiPilot System One stress.',
+    'You generate DISTINCT natural-language user utterances for NotLM System One stress.',
     `Product role: ${input.productRole}`,
     `Lane: ${input.lane} — ${laneJobs[input.lane]}`,
     `Generate exactly ${input.count} unique utterances (English).`,
@@ -149,7 +149,7 @@ export function lanePatchPrePrompt(input: {
   catalogDigest: string;
 }): string {
   return [
-    'You repair a UiPilot pack so System One stress hard-fails become hits.',
+    'You repair a NotLM pack so System One stress hard-fails become hits.',
     `Product role: ${input.productRole}`,
     'Respond with a single JSON object only:',
     '{',

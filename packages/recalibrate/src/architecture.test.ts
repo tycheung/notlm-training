@@ -37,12 +37,12 @@ function importSpecifiers(source: string): string[] {
 }
 
 describe('training architecture', () => {
-  it('must not import @uipilot/react (runtime UI stays in operating repo)', () => {
+  it('must not import @notlm/react (runtime UI stays in operating repo)', () => {
     const hits: string[] = [];
     for (const file of collectTsFiles(join(ROOT, 'packages'))) {
       const text = readFileSync(file, 'utf8');
       for (const spec of importSpecifiers(text)) {
-        if (spec === '@uipilot/react' || spec.startsWith('@uipilot/react/')) {
+        if (spec === '@notlm/react' || spec.startsWith('@notlm/react/')) {
           hits.push(`${relative(ROOT, file)} → ${spec}`);
         }
       }

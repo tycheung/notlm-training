@@ -14,7 +14,7 @@ type PlaywrightChromium = {
 /**
  * Optional live crawl via Playwright.
  *
- * Playwright is **not** a hard dependency of `@uipilot/mapper`.
+ * Playwright is **not** a hard dependency of `@notlm/mapper`.
  * Install it in the host/tooling workspace when you need URL crawls:
  *
  *   npm i -D playwright
@@ -31,7 +31,7 @@ export async function crawlWithPlaywright(url: string): Promise<ControlInventory
     chromium = pw.chromium;
   } catch {
     throw new Error(
-      'playwright is not installed. Use crawlHtml / `uipilot-training inventory crawl --html <file>`, ' +
+      'playwright is not installed. Use crawlHtml / `notlm-training inventory crawl --html <file>`, ' +
         'or install with: npm i -D playwright && npx playwright install chromium'
     );
   }

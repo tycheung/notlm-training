@@ -6,12 +6,12 @@ import { cmdAnnotateChecklist, cmdInit, cmdDagGenerate } from './commands.js';
 import { cmdMap, cmdTune } from './cmdMapTunePrepare.js';
 import { cmdScenariosGenerate, cmdScenariosSaturate } from './cmdScenarios.js';
 import { cmdScenariosAsk, cmdScenariosLabelPool } from './cmdScenariosAsk.js';
-import { pathExists, resolveUipilotHome } from './uipilotHome.js';
+import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { cmdRankerTrain } from './cmdRanker.js';
 
 const temps: string[] = [];
-const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.uipilot/pack');
-const fixtureHome = join(process.cwd(), 'fixtures/minimal-pack/.uipilot');
+const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.notlm/pack');
+const fixtureHome = join(process.cwd(), 'fixtures/minimal-pack/.notlm');
 
 afterEach(() => {
   for (const t of temps.splice(0)) {
@@ -25,10 +25,10 @@ afterEach(() => {
 
 describe('scenarios saturate (fixture)', () => {
   it('writes candidates + novelty report without LLM', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-sat-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-sat-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -57,10 +57,10 @@ describe('scenarios saturate (fixture)', () => {
 
 describe('map / tune façade', () => {
   it('map writes structured-draft without LLM', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-map-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-map-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -72,10 +72,10 @@ describe('map / tune façade', () => {
   it(
     'tune with --fixture saturates without LLM provider',
     async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-tune-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-tune-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -90,10 +90,10 @@ describe('map / tune façade', () => {
   it(
     'tune --force=N hard-adds exactly N ignoring novelty',
     async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-force-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-force-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -115,10 +115,10 @@ describe('map / tune façade', () => {
 
 describe('annotate checklist', () => {
   it('merges host annotation DoD items idempotently', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-ann-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-ann-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     await cmdAnnotateChecklist([root]);
     await cmdAnnotateChecklist([root]);
     const data = JSON.parse(readFileSync(join(home, 'checklist.json'), 'utf8')) as {
@@ -132,10 +132,10 @@ describe('annotate checklist', () => {
 
 describe('ranker train CLI', () => {
   it('writes pack/ranker.json from corpus', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-rank-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-rank-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -148,10 +148,10 @@ describe('ranker train CLI', () => {
 
 describe('scenarios ask (user-ask blurb pool)', () => {
   it('hard-augments user-ask fixture pool and label-pool drafts scenarios', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-ask-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-ask-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));

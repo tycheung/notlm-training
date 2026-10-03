@@ -4,12 +4,12 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cmdInit } from './commands.js';
 import { cmdTrainAuto, cmdTrainPause, cmdTrainStop } from './cmdTrainAuto.js';
-import { pathExists, resolveUipilotHome } from './uipilotHome.js';
+import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { isFatCommand } from './fatDispatch.js';
 
 const temps: string[] = [];
-const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.uipilot/pack');
-const fixtureHome = join(process.cwd(), 'fixtures/minimal-pack/.uipilot');
+const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.notlm/pack');
+const fixtureHome = join(process.cwd(), 'fixtures/minimal-pack/.notlm');
 
 afterEach(() => {
   for (const t of temps.splice(0)) {
@@ -30,10 +30,10 @@ describe('train auto CLI', () => {
   });
 
   it('fixture run fills rolling window and can meet a tiny bar', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-train-auto-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-train-auto-'));
     temps.push(root);
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {
       cpSync(join(fixtureHome, 'scenarios.json'), join(home, 'scenarios.json'));
@@ -57,11 +57,11 @@ describe('train auto CLI', () => {
   }, 60_000);
 
   it('pause and stop write control file', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-train-ctl-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-train-ctl-'));
     temps.push(root);
     await cmdInit(root);
     await cmdTrainPause([root]);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     const ctl = JSON.parse(
       readFileSync(join(home, 'train-auto', 'control.json'), 'utf8')
     ) as { state: string };

@@ -4,9 +4,9 @@ import {
   labelCandidates,
   resolveLabelerKind,
   tuneIntents,
-} from '@uipilot/author';
-import { checkIntents } from '@uipilot/core';
-import { createProviderFromEnv } from '@uipilot/llm';
+} from '@notlm/author';
+import { checkIntents } from '@notlm/core';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   draftsDir,
   ensureDir,
@@ -14,9 +14,9 @@ import {
   loadPackFolderJson,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 import {
   hasFlag,
   loadPriorCandidates,
@@ -30,15 +30,15 @@ import { cmdScenariosGenerate } from './cmdScenarios.js';
 
 export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
 
   const chunk = Math.max(1, Number(parseFlag(args, '--chunk') ?? '50') || 50);
-  const useFixture = hasFlag(args, '--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
   const files = loadPackFolderJson(home);
   const productBlurb = resolveProductBlurb(args, files);
   const pool = loadPriorCandidates(home);
@@ -118,18 +118,18 @@ export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
     `Soft-label pool draft (${allScenarios.length} scenarios, ${faqDraft.length} faq) → ${outDir}`
   );
   console.log(
-    'Next: merge scenarios into .uipilot/scenarios.json, review faq.json, run intents tune, then pack accept.'
+    'Next: merge scenarios into .notlm/scenarios.json, review faq.json, run intents tune, then pack accept.'
   );
 }
 
 /**
- * `uipilot-training scenarios ask [dir] --force=N --blurb="..." [--label-pool] [--fixture]`
+ * `notlm-training scenarios ask [dir] --force=N --blurb="..." [--label-pool] [--fixture]`
  * Blurb-led user questions at scale (default force 5000). Does not auto-merge pack/.
  */
 export async function cmdScenariosAsk(args: string[]): Promise<void> {
   const force = parseForceCount(args) ?? 5000;
   if (force < 1) {
-    console.error('Usage: uipilot-training scenarios ask [dir] --force=5000..10000 --blurb="..."');
+    console.error('Usage: notlm-training scenarios ask [dir] --force=5000..10000 --blurb="..."');
     process.exitCode = 1;
     return;
   }
@@ -159,13 +159,13 @@ export async function cmdScenariosAsk(args: string[]): Promise<void> {
 }
 
 export async function runIntentsTuneIfPossible(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   const files = loadPackFolderJson(home);
   if (!files.scenarios || !files.intents) {
     console.log('tune: skip intents tune (need scenarios.json + pack/intents.json)');
     return;
   }
-  if (process.env.UIPILOT_SATURATE_FIXTURE === '1') {
+  if (process.env.NOTLM_SATURATE_FIXTURE === '1') {
     try {
       createProviderFromEnv();
     } catch {

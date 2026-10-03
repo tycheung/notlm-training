@@ -1,5 +1,5 @@
-import { validatePackFolder } from '@uipilot/schema';
-import type { LlmProvider } from '@uipilot/llm';
+import { validatePackFolder } from '@notlm/schema';
+import type { LlmProvider } from '@notlm/llm';
 import { buildIntentTunePrompt } from './prompts.js';
 import { extractJsonText } from './parseModelJson.js';
 

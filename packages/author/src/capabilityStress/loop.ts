@@ -3,8 +3,8 @@
  * generate N×13 lane prompts → score → patch pack language → iterate
  * until hardFails=0 or passRate >= target (default 0.999).
  */
-import type { LlmProvider } from '@uipilot/llm';
-import type { PackJsonInput } from '@uipilot/core';
+import type { LlmProvider } from '@notlm/llm';
+import type { PackJsonInput } from '@notlm/core';
 import { CAPABILITY_LANES, type CapabilityLane } from './lanes.js';
 import { generateFullSuite } from './generate.js';
 import {

@@ -1,9 +1,9 @@
 /**
  * Generate distinct lane utterances via LLM preset pre-prompts, with morph fallback.
  */
-import type { LlmProvider } from '@uipilot/llm';
-import type { PackJsonInput } from '@uipilot/core';
-import { normalizeUtterance } from '@uipilot/core';
+import type { LlmProvider } from '@notlm/llm';
+import type { PackJsonInput } from '@notlm/core';
+import { normalizeUtterance } from '@notlm/core';
 import {
   CAPABILITY_LANES,
   LANE_EXPECT,
@@ -69,7 +69,7 @@ export async function generateLaneCases(input: {
           {
             role: 'system',
             content:
-              'You generate distinct user utterances for UiPilot System One stress. One utterance per line. No JSON.',
+              'You generate distinct user utterances for NotLM System One stress. One utterance per line. No JSON.',
           },
           { role: 'user', content: prompt },
         ],

@@ -14,7 +14,7 @@ describe('misses CLI', () => {
   });
 
   it('exports JSON array from JSONL', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-miss-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-miss-'));
     try {
       const src = join(dir, 'misses.jsonl');
       writeFileSync(
@@ -32,7 +32,7 @@ describe('misses CLI', () => {
   });
 
   it('export rejects snake_case host dumps', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-miss-bad-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-miss-bad-'));
     try {
       const src = join(dir, 'bad.json');
       writeFileSync(
@@ -47,7 +47,7 @@ describe('misses CLI', () => {
   });
 
   it('pull fetches and writes portable MissRecord[]', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-miss-pull-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-miss-pull-'));
     try {
       vi.stubGlobal(
         'fetch',
@@ -76,11 +76,11 @@ describe('misses CLI', () => {
     }
   });
 
-  it('draft-aliases writes grouped draft under .uipilot/drafts', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-miss-home-'));
+  it('draft-aliases writes grouped draft under .notlm/drafts', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-miss-home-'));
     try {
       writeFileSync(join(dir, 'config.json'), '{}\n');
-      const home = join(dir, '.uipilot');
+      const home = join(dir, '.notlm');
       const { mkdirSync } = await import('node:fs');
       mkdirSync(home, { recursive: true });
       mkdirSync(join(home, 'drafts'), { recursive: true });

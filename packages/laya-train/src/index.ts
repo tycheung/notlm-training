@@ -1,12 +1,12 @@
 export {
-  convertUipilotToLaya,
+  convertNotlmToLaya,
   buildRecordsForRows,
   recordsFromPack,
-  type ConvertUipilotOptions,
+  type ConvertNotlmOptions,
 } from './convert.js';
 export type {
   LayaConvertMode,
   LayaConvertManifest,
   LayaTypedDecisionRecord,
-  ConvertUipilotResult,
+  ConvertNotlmResult,
 } from './types.js';

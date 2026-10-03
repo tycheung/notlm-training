@@ -1,5 +1,5 @@
-import type { IntentParsePack } from '@uipilot/core';
-import type { LlmProvider } from '@uipilot/llm';
+import type { IntentParsePack } from '@notlm/core';
+import type { LlmProvider } from '@notlm/llm';
 import { generateScenarioCandidates } from './generateCandidates.js';
 import {
   buildNoveltyReport,

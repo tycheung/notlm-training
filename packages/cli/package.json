@@ -1,23 +1,23 @@
 {
-  "name": "@uipilot-training/cli",
+  "name": "@notlm-training/cli",
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "uipilot-training": "./dist/cli.js"
+    "notlm-training": "./dist/cli.js"
   },
   "main": "./dist/cli.js",
   "files": ["dist"],
   "dependencies": {
-    "@uipilot/author": "*",
-    "@uipilot/codegen": "*",
-    "@uipilot/core": "*",
-    "@uipilot/llm": "*",
-    "@uipilot/mapper": "*",
-    "@uipilot/ranker": "*",
-    "@uipilot/schema": "*",
-    "@uipilot-training/ranker-train": "*",
-    "@uipilot-training/laya-train": "*",
-    "@uipilot-training/recalibrate": "*"
+    "@notlm/author": "*",
+    "@notlm/codegen": "*",
+    "@notlm/core": "*",
+    "@notlm/llm": "*",
+    "@notlm/mapper": "*",
+    "@notlm/ranker": "*",
+    "@notlm/schema": "*",
+    "@notlm-training/ranker-train": "*",
+    "@notlm-training/laya-train": "*",
+    "@notlm-training/recalibrate": "*"
   },
   "scripts": { "build": "tsc -b" },
   "devDependencies": {

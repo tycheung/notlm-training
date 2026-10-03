@@ -1,10 +1,10 @@
-import type { MissExchange, MissProposed } from '@uipilot/core';
+import type { MissExchange, MissProposed } from '@notlm/core';
 import {
   normalizeConversationsDump,
   normalizeMissExchangeList,
   parseMissExchanges,
   parseMissRecords,
-} from '@uipilot/core';
+} from '@notlm/core';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -133,7 +133,7 @@ export type FoldedPackPieces = {
   intents: IntentsPiece;
   faq: FaqEntry[];
   corpus: CorpusCase[];
-  /** Home-root scenarios.json cases for `uipilotCLI intents check`. */
+  /** Home-root scenarios.json cases for `notlmCLI intents check`. */
   scenarios: CorpusCase[];
   meta: {
     id: string;
@@ -272,7 +272,7 @@ export function foldExchangeDraft(
   };
 }
 
-/** Write folded pack pieces under `.uipilot/drafts/<id>/` for pack accept. */
+/** Write folded pack pieces under `.notlm/drafts/<id>/` for pack accept. */
 export function writeFoldedPackDraft(
   homeDir: string,
   exchangeDraftPath: string,
@@ -328,7 +328,7 @@ export type ConversationProposalDraft = {
   conversations?: unknown;
 };
 
-/** Write analysis proposal + folded pack draft under `.uipilot/drafts/`. */
+/** Write analysis proposal + folded pack draft under `.notlm/drafts/`. */
 export function writeConversationFoldDraft(
   homeDir: string,
   proposal: ConversationProposalDraft,
@@ -393,7 +393,7 @@ export function writeConversationFoldDraft(
   return { proposalDir, foldDir, draftId };
 }
 
-export function loadConversationsFromRaw(raw: string): import('@uipilot/core').ConversationRecord[] {
+export function loadConversationsFromRaw(raw: string): import('@notlm/core').ConversationRecord[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
   if (trimmed.startsWith('[')) {
@@ -410,7 +410,7 @@ export function loadConversationsFromRaw(raw: string): import('@uipilot/core').C
 
 export function loadConversationsFromJson(
   data: unknown
-): import('@uipilot/core').ConversationRecord[] {
+): import('@notlm/core').ConversationRecord[] {
   return normalizeConversationsDump(data);
 }
 

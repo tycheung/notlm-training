@@ -9,9 +9,9 @@ import {
   splitContextBatchGenerator,
   buildContextTreePlan,
   type ScenarioCandidate,
-} from '@uipilot/author';
-import { checkIntents } from '@uipilot/core';
-import { createProviderFromEnv } from '@uipilot/llm';
+} from '@notlm/author';
+import { checkIntents } from '@notlm/core';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   draftsDir,
   ensureDir,
@@ -19,9 +19,9 @@ import {
   loadPackFolderJson,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 import {
   FIXTURE_SEED,
   USER_ASK_FIXTURE_SEED,
@@ -43,9 +43,9 @@ import {
 
 export async function cmdScenariosGenerate(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -55,7 +55,7 @@ export async function cmdScenariosGenerate(args: string[]): Promise<void> {
   const batchSize = Number(
     parseFlag(args, '--batch') ?? bare[0] ?? (forceCount ? String(forceCount) : '100')
   );
-  const useFixture = hasFlag(args, '--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
   const mode = resolveGenerateMode(args);
   const files = loadPackFolderJson(home);
   const productBlurb = resolveProductBlurb(args, files);
@@ -182,7 +182,7 @@ export async function cmdScenariosGenerate(args: string[]): Promise<void> {
 }
 
 /**
- * `uipilot-training scenarios saturate [dir] [--batch=100] [--max-batches=N] [--fixture] [--force=N]`
+ * `notlm-training scenarios saturate [dir] [--batch=100] [--max-batches=N] [--fixture] [--force=N]`
  * Default batch=100 for no-lift rule (5×100). `--force=N` ignores novelty.
  */
 async function softLabelAndDraft(
@@ -229,14 +229,14 @@ async function softLabelAndDraft(
 
 /**
  * After saturate, optionally run intents tune when scenarios exist.
- * Used by `uipilot-training tune` façade.
+ * Used by `notlm-training tune` façade.
  */
 
 export async function cmdScenariosSaturate(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -250,7 +250,7 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
   const maxBatches = Number(
     parseFlag(args, '--max-batches') ?? (forceCount !== undefined ? '1' : bare[1] ?? '50')
   );
-  const useFixture = hasFlag(args, '--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
   const mode = resolveGenerateMode(args);
   const files = loadPackFolderJson(home);
   const productBlurb = resolveProductBlurb(args, files);
@@ -396,7 +396,7 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
 }
 
 /**
- * `uipilot-training scenarios label-pool [dir] [--chunk=50] [--fixture]`
+ * `notlm-training scenarios label-pool [dir] [--chunk=50] [--fixture]`
  * Soft-label the entire saturation/candidates.json pool in chunks → drafts/.
  */
 

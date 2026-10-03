@@ -1,9 +1,9 @@
 /**
- * Load host `.uipilot/pack` JSON into PackJsonInput (VB / generic SPA layout).
+ * Load host `.notlm/pack` JSON into PackJsonInput (VB / generic SPA layout).
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PackJsonInput } from '@uipilot/core';
+import type { PackJsonInput } from '@notlm/core';
 
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -35,13 +35,13 @@ function normalizeBinders(raw: unknown): Record<string, unknown> {
   return out;
 }
 
-/** Resolve pack folder: `<home>/pack` or `<dir>/.uipilot/pack`. */
+/** Resolve pack folder: `<home>/pack` or `<dir>/.notlm/pack`. */
 export function resolvePackFolder(homeOrPack: string): string {
   if (existsSync(join(homeOrPack, 'manifest.json'))) return homeOrPack;
   const nested = join(homeOrPack, 'pack');
   if (existsSync(join(nested, 'manifest.json'))) return nested;
-  const uipilot = join(homeOrPack, '.uipilot', 'pack');
-  if (existsSync(join(uipilot, 'manifest.json'))) return uipilot;
+  const notlm = join(homeOrPack, '.notlm', 'pack');
+  if (existsSync(join(notlm, 'manifest.json'))) return notlm;
   return nested;
 }
 

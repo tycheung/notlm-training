@@ -1,8 +1,8 @@
 {
-  "name": "@uipilot/llm",
+  "name": "@notlm/llm",
   "version": "0.0.0",
   "type": "module",
-  "description": "Multi-provider LLM chat adapters for UiPilot host BYO + training (not browser runtime)",
+  "description": "Multi-provider LLM chat adapters for NotLM host BYO + training (not browser runtime)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

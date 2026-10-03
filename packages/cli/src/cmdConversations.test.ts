@@ -7,10 +7,10 @@ import {
   cmdConversationsPull,
 } from './cmdConversations.js';
 import { cmdInit } from './commands.js';
-import { pathExists, resolveUipilotHome } from './uipilotHome.js';
+import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { runCli } from './cli.js';
 
-const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.uipilot/pack');
+const fixturePack = join(process.cwd(), 'fixtures/minimal-pack/.notlm/pack');
 
 const sampleTurn = {
   conversationId: 'c1',
@@ -37,7 +37,7 @@ describe('cmdConversationsPull', () => {
   });
 
   it('writes aggregated conversations from turn dump', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-conv-pull-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-conv-pull-'));
     const out = join(dir, 'conv.json');
     vi.stubGlobal(
       'fetch',
@@ -71,9 +71,9 @@ describe('cmdConversationsAnalyze', () => {
   });
 
   it('fixture review mode writes unchecked fold draft', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-conv-review-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-conv-review-'));
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
 
     const from = join(root, 'conv.json');
@@ -131,9 +131,9 @@ describe('cmdConversationsAnalyze', () => {
   });
 
   it('fixture auto mode accepts into pack', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-conv-auto-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-conv-auto-'));
     await cmdInit(root);
-    const { home } = resolveUipilotHome(root);
+    const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
 
     const from = join(root, 'conv.json');

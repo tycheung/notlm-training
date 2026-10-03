@@ -7,15 +7,15 @@ import {
   mergeInventory,
   type ControlInventory,
   type ControlStepMap,
-} from '@uipilot/mapper';
+} from '@notlm/mapper';
 import {
   draftsDir,
   join,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 export async function cmdInventoryCrawl(args: string[]): Promise<void> {
   const htmlIdx = Math.max(args.indexOf('--html'), args.indexOf('--file'));
@@ -40,10 +40,10 @@ export async function cmdInventoryCrawl(args: string[]): Promise<void> {
     })
     .at(-1);
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
 
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -55,7 +55,7 @@ export async function cmdInventoryCrawl(args: string[]): Promise<void> {
   } else if (urlIdx >= 0) {
     const url = args[urlIdx + 1];
     if (!url) {
-      console.error('Usage: uipilot-training inventory crawl --html <file> | --url <url> [dir]');
+      console.error('Usage: notlm-training inventory crawl --html <file> | --url <url> [dir]');
       process.exitCode = 1;
       return;
     }
@@ -74,9 +74,9 @@ export async function cmdInventoryCrawl(args: string[]): Promise<void> {
       }
     }
   } else {
-    console.error('Usage: uipilot-training inventory crawl --html <file> | --url <url> [dir]');
+    console.error('Usage: notlm-training inventory crawl --html <file> | --url <url> [dir]');
     console.error('Tip: npm may swallow --html; use: node packages/cli/dist/cli.js inventory crawl --html <file> [dir]');
-    console.error('Or pass a bare path: uipilot-training inventory crawl path/to/page.html [dir]');
+    console.error('Or pass a bare path: notlm-training inventory crawl path/to/page.html [dir]');
     process.exitCode = 1;
     return;
   }
@@ -91,7 +91,7 @@ export async function cmdInventoryCrawl(args: string[]): Promise<void> {
 }
 
 /**
- * `uipilot-training inventory attach [dir] [--map <file>]`
+ * `notlm-training inventory attach [dir] [--map <file>]`
  * Reads inventory.json + control-map.json (guideId→stepId) → drafts/controls-nav.json
  */
 export async function cmdInventoryAttach(args: string[]): Promise<void> {
@@ -102,9 +102,9 @@ export async function cmdInventoryAttach(args: string[]): Promise<void> {
     if (mapIdx >= 0 && (i === mapIdx || i === mapIdx + 1)) return false;
     return true;
   });
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }

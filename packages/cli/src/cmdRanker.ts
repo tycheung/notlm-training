@@ -1,5 +1,5 @@
 /**
- * `uipilot-training ranker train [dir] [--epochs=40] [--dim=128]`
+ * `notlm-training ranker train [dir] [--epochs=40] [--dim=128]`
  * Trains a tiny intent+slot ranker from pack corpus (+ aliases) → pack/ranker.json (+ .onnx).
  */
 import { writeFileSync } from 'node:fs';
@@ -10,17 +10,17 @@ import {
   formatCalibrationSummary,
   reportRankerCalibration,
   trainRanker,
-} from '@uipilot-training/ranker-train';
-import type { RankerModelJson } from '@uipilot/ranker';
-import type { ScenarioCase } from '@uipilot/core';
+} from '@notlm-training/ranker-train';
+import type { RankerModelJson } from '@notlm/ranker';
+import type { ScenarioCase } from '@notlm/core';
 import {
   ensureDir,
   loadPackFolderJson,
   packDir,
   pathExists,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function parseFlag(args: string[], name: string): string | undefined {
   const eq = args.find((a) => a.startsWith(`${name}=`));
@@ -32,9 +32,9 @@ function parseFlag(args: string[], name: string): string | undefined {
 
 export async function cmdRankerTrain(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -76,7 +76,7 @@ export async function cmdRankerTrain(args: string[]): Promise<void> {
     console.warn(`ONNX export skipped: ${msg}`);
     console.log(`Wrote ${jsonPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`);
   }
-  console.log('Enable at runtime: features.onnxRanker=true or UIPILOT_ONNX_RANKER=1');
+  console.log('Enable at runtime: features.onnxRanker=true or NOTLM_ONNX_RANKER=1');
   const cal = reportRankerCalibration(model, labeled, { minProbability: 0.35 });
   console.log(formatCalibrationSummary(cal));
 }

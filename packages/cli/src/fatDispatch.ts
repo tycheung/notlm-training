@@ -1,4 +1,4 @@
-/** Authoring / training CLI dispatch (uipilot-training). */
+/** Authoring / training CLI dispatch (notlm-training). */
 import {
   cmdAnnotateChecklist,
   cmdChecklistMd,
@@ -120,7 +120,7 @@ export async function runFatCli(argv: string[]): Promise<void> {
       break;
     case 'intents':
       if (sub === 'tune') await cmdIntentsTune(rest[0]);
-      else throw new Error('Usage: intents tune … (intents check stays on uipilotCLI)');
+      else throw new Error('Usage: intents tune … (intents check stays on notlmCLI)');
       break;
     case 'scenarios':
       if (sub === 'generate') await cmdScenariosGenerate(rest);
@@ -144,7 +144,7 @@ export async function runFatCli(argv: string[]): Promise<void> {
       break;
     case 'ranker':
       if (sub === 'train') await cmdRankerTrain(rest);
-      else throw new Error('Usage: ranker train … (ranker check stays on uipilotCLI)');
+      else throw new Error('Usage: ranker train … (ranker check stays on notlmCLI)');
       break;
     case 'laya':
       await cmdLaya([sub, ...rest].filter(Boolean) as string[]);

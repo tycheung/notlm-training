@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@uipilot/llm';
+import type { LlmProvider } from '@notlm/llm';
 import { extractJsonText } from '../parseModelJson.js';
 import type { LabelContext, LabelProvider } from '../labeler/layaLabeler.js';
 import { buildSoftLabelPrompt } from './generatePrompt.js';
@@ -49,7 +49,7 @@ export async function labelCandidates(input: {
     return {
       ok: false,
       errors: ['No labeler or LLM provider'],
-      checklist: ['Set UIPILOT_LABELER=laya|mock or UIPILOT_LLM_*'],
+      checklist: ['Set NOTLM_LABELER=laya|mock or NOTLM_LLM_*'],
     };
   }
   return softLabelCandidates({

@@ -1,14 +1,14 @@
-import { draftConversationalCopy } from '@uipilot/author';
-import { createProviderFromEnv } from '@uipilot/llm';
+import { draftConversationalCopy } from '@notlm/author';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   draftsDir,
   ensureDir,
   join,
   loadPackFolderJson,
   pathExists,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function stamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
@@ -19,19 +19,19 @@ function hasFlag(args: string[], name: string): boolean {
 }
 
 /**
- * `uipilot-training talk draft [dir] [--fixture]`
+ * `notlm-training talk draft [dir] [--fixture]`
  * Drafts replies.json + FAQ + slot asks under drafts/ (build-time only).
  */
 export async function cmdTalkDraft(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
 
-  const useFixture = hasFlag(args, '--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
   const files = loadPackFolderJson(home);
   const flow = Array.isArray(files.flow) ? files.flow : [];
   const stepTitles = flow

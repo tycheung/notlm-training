@@ -1,5 +1,5 @@
 {
-  "name": "@uipilot/author",
+  "name": "@notlm/author",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,9 +12,9 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@uipilot/core": "*",
-    "@uipilot/llm": "*",
-    "@uipilot/schema": "*"
+    "@notlm/core": "*",
+    "@notlm/llm": "*",
+    "@notlm/schema": "*"
   },
   "scripts": {
     "build": "tsc -b"

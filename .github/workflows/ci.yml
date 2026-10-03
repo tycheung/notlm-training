@@ -10,16 +10,16 @@ jobs:
   train:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout uipilot-training
+      - name: Checkout notlm-training
         uses: actions/checkout@v4
         with:
-          path: uipilot-training
+          path: notlm-training
 
-      - name: Checkout sibling uipilot
+      - name: Checkout sibling notlm
         uses: actions/checkout@v4
         with:
-          repository: tycheung/uipilot
-          path: uipilot
+          repository: tycheung/notlm
+          path: notlm
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
@@ -27,17 +27,17 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: |
-            uipilot/package-lock.json
-            uipilot-training/package-lock.json
+            notlm/package-lock.json
+            notlm-training/package-lock.json
 
       - name: Build operating runtime deps (file links)
-        working-directory: uipilot
+        working-directory: notlm
         run: |
           npm ci
-          npm run build -w @uipilot/core -w @uipilot/schema -w @uipilot/ranker
+          npm run build -w @notlm/core -w @notlm/schema -w @notlm/ranker
 
       - name: Training CI
-        working-directory: uipilot-training
+        working-directory: notlm-training
         run: |
           npm ci
           npm run ci

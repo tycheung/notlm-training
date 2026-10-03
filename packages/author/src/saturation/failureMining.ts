@@ -1,4 +1,4 @@
-import type { IntentCheckResult } from '@uipilot/core';
+import type { IntentCheckResult } from '@notlm/core';
 
 export type FailureMineResult = {
   checklist: Array<Record<string, unknown>>;

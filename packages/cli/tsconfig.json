@@ -14,8 +14,8 @@
     { "path": "../ranker-train" },
     { "path": "../laya-train" },
     { "path": "../recalibrate" },
-    { "path": "../../../uipilot/packages/core" },
-    { "path": "../../../uipilot/packages/schema" },
-    { "path": "../../../uipilot/packages/ranker" }
+    { "path": "../../../notlm/packages/core" },
+    { "path": "../../../notlm/packages/schema" },
+    { "path": "../../../notlm/packages/ranker" }
   ]
 }

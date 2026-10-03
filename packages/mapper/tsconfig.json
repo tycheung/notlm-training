@@ -7,5 +7,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../../../uipilot/packages/core" }]
+  "references": [{ "path": "../../../notlm/packages/core" }]
 }

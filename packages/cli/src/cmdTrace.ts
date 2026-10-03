@@ -5,15 +5,15 @@ import {
   traceToFlowDraft,
   writeTraceFile,
   type ClickTrace,
-} from '@uipilot/mapper';
+} from '@notlm/mapper';
 import {
   draftsDir,
   ensureDir,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function stamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
@@ -21,9 +21,9 @@ function stamp(): string {
 
 export async function cmdTraceNew(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -36,7 +36,7 @@ export async function cmdTraceNew(args: string[]): Promise<void> {
   };
   const saved = writeTraceFile(home, trace, `trace-recording-${stamp}`);
   console.log(`Started empty trace at ${saved}`);
-  console.log('Append click/navigate events, then: uipilot-training trace ingest <file> [dir]');
+  console.log('Append click/navigate events, then: notlm-training trace ingest <file> [dir]');
 }
 
 export async function cmdTraceIngest(args: string[]): Promise<void> {
@@ -44,14 +44,14 @@ export async function cmdTraceIngest(args: string[]): Promise<void> {
   const dir = args.filter((a) => a !== traceFile && !a.startsWith('-')).at(-1);
 
   if (!traceFile) {
-    console.error('Usage: uipilot-training trace ingest <trace.json> [dir]');
+    console.error('Usage: notlm-training trace ingest <trace.json> [dir]');
     process.exitCode = 1;
     return;
   }
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }

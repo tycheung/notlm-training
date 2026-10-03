@@ -1,7 +1,7 @@
 /**
  * Morph / expand utterances from pack seeds when no LLM (CI fixture / offline).
  */
-import { normalizeUtterance, type PackJsonInput } from '@uipilot/core';
+import { normalizeUtterance, type PackJsonInput } from '@notlm/core';
 import { CAPABILITY_LANES, LANE_EXPECT, type CapabilityLane } from './lanes.js';
 import type { StressCase } from './score.js';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@uipilot/codegen",
+  "name": "@notlm/codegen",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,7 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@uipilot/schema": "*"
+    "@notlm/schema": "*"
   },
   "scripts": {
     "build": "tsc -b"

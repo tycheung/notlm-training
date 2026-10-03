@@ -6,9 +6,9 @@ import { createAnthropicProvider } from './providers/anthropic.js';
 describe('loadLlmEnv', () => {
   it('loads ollama from process env', () => {
     const env = loadLlmEnv({
-      UIPILOT_LLM_PROVIDER: 'ollama',
-      UIPILOT_LLM_BASE_URL: 'http://127.0.0.1:11434',
-      UIPILOT_LLM_MODEL: 'llama3.2',
+      NOTLM_LLM_PROVIDER: 'ollama',
+      NOTLM_LLM_BASE_URL: 'http://127.0.0.1:11434',
+      NOTLM_LLM_MODEL: 'llama3.2',
     });
     expect(env).toEqual({
       provider: 'ollama',
@@ -20,9 +20,9 @@ describe('loadLlmEnv', () => {
 
   it('aliases openai to openai provider with default base', () => {
     const env = loadLlmEnv({
-      UIPILOT_LLM_PROVIDER: 'openai',
-      UIPILOT_LLM_MODEL: 'gpt-4o-mini',
-      UIPILOT_LLM_API_KEY: 'sk-test',
+      NOTLM_LLM_PROVIDER: 'openai',
+      NOTLM_LLM_MODEL: 'gpt-4o-mini',
+      NOTLM_LLM_API_KEY: 'sk-test',
     });
     expect(env.provider).toBe('openai');
     expect(env.baseUrl).toBe('https://api.openai.com');
@@ -31,26 +31,26 @@ describe('loadLlmEnv', () => {
   it('requires api key for openai-compat', () => {
     expect(() =>
       loadLlmEnv({
-        UIPILOT_LLM_PROVIDER: 'openai-compat',
-        UIPILOT_LLM_BASE_URL: 'https://api.example.com',
-        UIPILOT_LLM_MODEL: 'gpt-test',
+        NOTLM_LLM_PROVIDER: 'openai-compat',
+        NOTLM_LLM_BASE_URL: 'https://api.example.com',
+        NOTLM_LLM_MODEL: 'gpt-test',
       })
-    ).toThrow(/UIPILOT_LLM_API_KEY/);
+    ).toThrow(/NOTLM_LLM_API_KEY/);
   });
 
   it('loads anthropic and huggingface', () => {
     expect(
       loadLlmEnv({
-        UIPILOT_LLM_PROVIDER: 'anthropic',
-        UIPILOT_LLM_MODEL: 'claude-3-5-haiku-latest',
-        UIPILOT_LLM_API_KEY: 'ak',
+        NOTLM_LLM_PROVIDER: 'anthropic',
+        NOTLM_LLM_MODEL: 'claude-3-5-haiku-latest',
+        NOTLM_LLM_API_KEY: 'ak',
       }).provider
     ).toBe('anthropic');
     expect(
       loadLlmEnv({
-        UIPILOT_LLM_PROVIDER: 'hf',
-        UIPILOT_LLM_MODEL: 'meta-llama/Llama-3.1-8B-Instruct',
-        UIPILOT_LLM_API_KEY: 'hf',
+        NOTLM_LLM_PROVIDER: 'hf',
+        NOTLM_LLM_MODEL: 'meta-llama/Llama-3.1-8B-Instruct',
+        NOTLM_LLM_API_KEY: 'hf',
       }).provider
     ).toBe('huggingface');
   });

@@ -14,8 +14,8 @@ import {
   makeEvalItem,
   guardDagMutation,
   collectInventoryGuideIds,
-} from '@uipilot/author';
-import type { IntentParsePack } from '@uipilot/core';
+} from '@notlm/author';
+import type { IntentParsePack } from '@notlm/core';
 
 const pack: IntentParsePack = {
   steps: [

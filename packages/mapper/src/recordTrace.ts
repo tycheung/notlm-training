@@ -76,12 +76,12 @@ export function appendTraceEvent(trace: ClickTrace, event: TraceEvent): ClickTra
 }
 
 export function writeTraceFile(
-  uipilotHome: string,
+  notlmHome: string,
   trace: ClickTrace,
   id?: string
 ): string {
   const traceId = id ?? `trace-${Date.now()}`;
-  const dir = join(uipilotHome, 'traces');
+  const dir = join(notlmHome, 'traces');
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${traceId}.json`);
   writeFileSync(path, `${JSON.stringify(trace, null, 2)}\n`, 'utf8');

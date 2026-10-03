@@ -1,5 +1,5 @@
-import type { ScenarioCase } from '@uipilot/core';
-import { featurizeUtterance, type RankerModelJson } from '@uipilot/ranker';
+import type { ScenarioCase } from '@notlm/core';
+import { featurizeUtterance, type RankerModelJson } from '@notlm/ranker';
 
 export type TrainExample = {
   utterance: string;

@@ -1,4 +1,4 @@
-import type { FlowStepDef, IntentParsePack, StepId } from '@uipilot/core';
+import type { FlowStepDef, IntentParsePack, StepId } from '@notlm/core';
 import { clashDensity, type ClashGroup } from '../detectClashes.js';
 
 export type ContextTreeMode = {

@@ -11,7 +11,7 @@ export type HuggingFaceProviderOptions = {
 /**
  * Hugging Face Inference / router OpenAI-compatible chat completions.
  * Default base: https://router.huggingface.co (OpenAI-compat under /v1).
- * For older HF Inference endpoints, set UIPILOT_LLM_BASE_URL accordingly.
+ * For older HF Inference endpoints, set NOTLM_LLM_BASE_URL accordingly.
  */
 export function createHuggingFaceProvider(opts: HuggingFaceProviderOptions): LlmProvider {
   const base = (opts.baseUrl ?? 'https://router.huggingface.co').replace(/\/$/, '');

@@ -1,8 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { normalizeMissRecordList, parseMissRecords } from '@uipilot/core';
-import { validateMissRecordList } from '@uipilot/schema';
-import { draftsDir, pathExists, resolveUipilotHome } from './uipilotHome.js';
+import { normalizeMissRecordList, parseMissRecords } from '@notlm/core';
+import { validateMissRecordList } from '@notlm/schema';
+import { draftsDir, pathExists, resolveNotlmHome } from './notlmHome.js';
 
 function takeFlag(args: string[], name: string): string | undefined {
   const eq = args.findIndex((a) => a.startsWith(`${name}=`));
@@ -44,7 +44,7 @@ function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: s
 export async function cmdMissesExport(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
-    console.error('Usage: uipilot-training misses export --from <file.json|jsonl> [--out <path>]');
+    console.error('Usage: notlm-training misses export --from <file.json|jsonl> [--out <path>]');
     process.exitCode = 1;
     return;
   }
@@ -59,7 +59,7 @@ export async function cmdMissesExport(args: string[]): Promise<void> {
 export async function cmdMissesPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
   if (!url) {
-    console.error('Usage: uipilot-training misses pull --url <endpoint> [--out <path>]');
+    console.error('Usage: notlm-training misses pull --url <endpoint> [--out <path>]');
     process.exitCode = 1;
     return;
   }
@@ -94,15 +94,15 @@ export async function cmdMissesDraftAliases(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
-      'Usage: uipilot-training misses draft-aliases --from <file.json|jsonl> [dir]'
+      'Usage: notlm-training misses draft-aliases --from <file.json|jsonl> [dir]'
     );
     process.exitCode = 1;
     return;
   }
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }

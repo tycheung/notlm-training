@@ -1,5 +1,5 @@
 /**
- * Product training mode #2: `uipilot-training feedback`
+ * Product training mode #2: `notlm-training feedback`
  * Live chat/miss logs → LLM drafts → accept → optional branch-out + ranker retrain.
  *
  * Legacy aliases: exchanges *, conversations *, misses *, metrics
@@ -36,14 +36,14 @@ export async function cmdFeedback(args: string[]): Promise<void> {
 
   if (!sub || sub === 'help' || sub === '--help') {
     console.log(`Usage:
-  uipilot-training feedback pull --url <endpoint> [--out <path>]
-  uipilot-training feedback draft --from <file> [dir]
-  uipilot-training feedback fold --from <draft.json> [dir]
-  uipilot-training feedback conversations pull|analyze …
-  uipilot-training feedback misses pull|export|draft-aliases …
-  uipilot-training feedback metrics --from <exchanges.json>
-  uipilot-training feedback accept <draftId> [dir]
-  uipilot-training feedback run --from <conv.json> [dir] [--mode=review|auto] [--branch-out] [--fixture]
+  notlm-training feedback pull --url <endpoint> [--out <path>]
+  notlm-training feedback draft --from <file> [dir]
+  notlm-training feedback fold --from <draft.json> [dir]
+  notlm-training feedback conversations pull|analyze …
+  notlm-training feedback misses pull|export|draft-aliases …
+  notlm-training feedback metrics --from <exchanges.json>
+  notlm-training feedback accept <draftId> [dir]
+  notlm-training feedback run --from <conv.json> [dir] [--mode=review|auto] [--branch-out] [--fixture]
 `);
     return;
   }

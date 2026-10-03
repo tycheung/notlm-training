@@ -20,7 +20,7 @@ describe('checklistToMarkdown', () => {
         },
       ],
     });
-    expect(md).toContain('# UiPilot checklist');
+    expect(md).toContain('# NotLM checklist');
     expect(md).toContain('- [ ] **missing-guide-id**: Add data-guide-id (`guide-save`)');
     expect(md).toContain('- [x] **binders**: Binders reviewed');
   });

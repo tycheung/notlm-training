@@ -1,7 +1,7 @@
 import { join } from 'node:path';
-import { authorPackDraft, tuneIntents } from '@uipilot/author';
-import { checkIntents } from '@uipilot/core';
-import { createProviderFromEnv } from '@uipilot/llm';
+import { authorPackDraft, tuneIntents } from '@notlm/author';
+import { checkIntents } from '@notlm/core';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   PACK_PIECES,
   copyTemplateFile,
@@ -11,9 +11,9 @@ import {
   packDir,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function stamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
@@ -34,9 +34,9 @@ function appendChecklist(home: string, items: Array<Record<string, unknown>>): v
 }
 
 export async function cmdPackAuthor(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -86,9 +86,9 @@ export async function cmdPackAuthor(dir?: string): Promise<void> {
 }
 
 export async function cmdIntentsTune(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -152,17 +152,17 @@ export async function cmdIntentsTune(dir?: string): Promise<void> {
 
 /**
  * Merge `drafts/<draftId>/` into `pack/`.
- * Refuses unchecked drafts (meta.checked !== true) unless UIPILOT_FORCE_ACCEPT=1.
+ * Refuses unchecked drafts (meta.checked !== true) unless NOTLM_FORCE_ACCEPT=1.
  * Always writes a pre-accept backup under the draft folder.
  */
 export async function cmdPackAccept(draftId: string, dir?: string): Promise<void> {
   if (!draftId) {
-    console.error('Usage: uipilot-training pack accept <draftId>');
+    console.error('Usage: notlm-training pack accept <draftId>');
     process.exitCode = 1;
     return;
   }
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   const draftPath = join(draftsDir(home), draftId);
   if (!pathExists(draftPath)) {
     console.error(`Draft not found: ${draftPath}`);
@@ -175,12 +175,12 @@ export async function cmdPackAccept(draftId: string, dir?: string): Promise<void
     ? readJsonFile<{ checked?: boolean; kind?: string }>(metaPath)
     : { checked: false };
 
-  const force = process.env.UIPILOT_FORCE_ACCEPT === '1';
+  const force = process.env.NOTLM_FORCE_ACCEPT === '1';
   if (!meta.checked && !force) {
     console.error(
       `Draft ${draftId} is unchecked (meta.checked !== true). ` +
         `Review the draft, set "checked": true in meta.json, then re-run — ` +
-        `or set UIPILOT_FORCE_ACCEPT=1 to override.`
+        `or set NOTLM_FORCE_ACCEPT=1 to override.`
     );
     process.exitCode = 1;
     return;

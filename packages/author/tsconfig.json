@@ -8,8 +8,8 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../../../uipilot/packages/core" },
-    { "path": "../../../uipilot/packages/schema" },
+    { "path": "../../../notlm/packages/core" },
+    { "path": "../../../notlm/packages/schema" },
     { "path": "../llm" }
   ]
 }

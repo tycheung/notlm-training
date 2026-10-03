@@ -45,22 +45,22 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@uipilot/core': resolve(__dirname, '../uipilot/packages/core/dist/index.js'),
-      '@uipilot/schema': resolve(__dirname, '../uipilot/packages/schema/dist/index.js'),
-      '@uipilot/ranker': resolve(__dirname, '../uipilot/packages/ranker/dist/index.js'),
-      '@uipilot/llm': resolve(__dirname, 'packages/llm/src/index.ts'),
-      '@uipilot/author': resolve(__dirname, 'packages/author/src/index.ts'),
-      '@uipilot/mapper': resolve(__dirname, 'packages/mapper/src/index.ts'),
-      '@uipilot/codegen': resolve(__dirname, 'packages/codegen/src/index.ts'),
-      '@uipilot-training/recalibrate': resolve(
+      '@notlm/core': resolve(__dirname, '../notlm/packages/core/dist/index.js'),
+      '@notlm/schema': resolve(__dirname, '../notlm/packages/schema/dist/index.js'),
+      '@notlm/ranker': resolve(__dirname, '../notlm/packages/ranker/dist/index.js'),
+      '@notlm/llm': resolve(__dirname, 'packages/llm/src/index.ts'),
+      '@notlm/author': resolve(__dirname, 'packages/author/src/index.ts'),
+      '@notlm/mapper': resolve(__dirname, 'packages/mapper/src/index.ts'),
+      '@notlm/codegen': resolve(__dirname, 'packages/codegen/src/index.ts'),
+      '@notlm-training/recalibrate': resolve(
         __dirname,
         'packages/recalibrate/src/index.ts'
       ),
-      '@uipilot-training/ranker-train': resolve(
+      '@notlm-training/ranker-train': resolve(
         __dirname,
         'packages/ranker-train/src/index.ts'
       ),
-      '@uipilot-training/laya-train': resolve(
+      '@notlm-training/laya-train': resolve(
         __dirname,
         'packages/laya-train/src/index.ts'
       ),

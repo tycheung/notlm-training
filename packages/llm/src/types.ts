@@ -14,7 +14,7 @@ export interface LlmProvider {
 }
 
 /**
- * Provider ids for UIPILOT_LLM_PROVIDER.
+ * Provider ids for NOTLM_LLM_PROVIDER.
  * `openai` and `openai-compat` share the OpenAI Chat Completions wire format
  * (OpenAI, Azure OpenAI, Groq, Together, many local gateways).
  */

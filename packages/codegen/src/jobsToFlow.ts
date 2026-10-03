@@ -77,11 +77,11 @@ function stripQuotes(s: string): string {
 }
 
 export function writeJobsFlowDraft(
-  uipilotHome: string,
+  notlmHome: string,
   doc: JobsDocument,
   draftId = `jobs-${Date.now()}`
 ): string {
-  const outDir = join(uipilotHome, 'drafts', draftId);
+  const outDir = join(notlmHome, 'drafts', draftId);
   mkdirSync(outDir, { recursive: true });
   const flow = jobsToFlowSteps(doc);
   writeFileSync(join(outDir, 'flow.json'), `${JSON.stringify(flow, null, 2)}\n`);

@@ -3,7 +3,7 @@ import {
   analyzeConversations,
   fixtureConversationProposal,
 } from './conversationAnalyze.js';
-import type { ConversationRecord } from '@uipilot/core';
+import type { ConversationRecord } from '@notlm/core';
 
 const conversations: ConversationRecord[] = [
   {

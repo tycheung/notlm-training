@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { IntentParsePack } from '@uipilot/core';
+import type { IntentParsePack } from '@notlm/core';
 import {
   composerNebulaBatch,
   mergeAliasesIntoIntents,

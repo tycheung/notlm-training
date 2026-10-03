@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { IntentParsePack, ScenarioCase } from '@uipilot/core';
+import type { IntentParsePack, ScenarioCase } from '@notlm/core';
 import {
   createJsonHybridParser,
   evaluateRankerSoftScore,
   inferRankerJson,
-} from '@uipilot/ranker';
+} from '@notlm/ranker';
 import { examplesFromCorpus, exportIntentOnnx, reportRankerCalibration, trainRanker } from './index.js';
 
 const corpus: ScenarioCase[] = [

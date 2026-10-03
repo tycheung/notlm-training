@@ -3,14 +3,14 @@ import { join } from 'node:path';
 import {
   loadHomeJson,
   loadPackJson,
-  resolveUipilotHome,
+  resolveNotlmHome,
 } from './loadHome.js';
 import type {
   LabeledUtterance,
   LayaConvertManifest,
   LayaConvertMode,
   LayaTypedDecisionRecord,
-  ConvertUipilotResult,
+  ConvertNotlmResult,
   ScenarioExpect,
 } from './types.js';
 
@@ -18,9 +18,9 @@ type FlowStep = { id?: string; title?: string; keywords?: string[] };
 type FaqEntry = { id?: string; aliases?: string[]; text?: string };
 type IntentsJson = { aliases?: Record<string, string[]> };
 
-export type ConvertUipilotOptions = {
+export type ConvertNotlmOptions = {
   mode?: LayaConvertMode;
-  /** Output directory for train.jsonl + manifest.json (default `.uipilot/laya`). */
+  /** Output directory for train.jsonl + manifest.json (default `.notlm/laya`). */
   out?: string;
   productRole?: string;
 };
@@ -453,12 +453,12 @@ export function buildRecordsForRows(
   return records;
 }
 
-export function convertUipilotToLaya(
+export function convertNotlmToLaya(
   dir: string,
-  opts: ConvertUipilotOptions = {}
-): ConvertUipilotResult {
+  opts: ConvertNotlmOptions = {}
+): ConvertNotlmResult {
   const mode = opts.mode ?? 'full';
-  const home = resolveUipilotHome(dir);
+  const home = resolveNotlmHome(dir);
   const outDir = opts.out ?? join(home, 'laya');
   const config = loadHomeJson(home, 'config.json') as { productBlurb?: string } | undefined;
   const productRole =

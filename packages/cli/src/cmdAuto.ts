@@ -1,15 +1,15 @@
 /**
- * Product training mode #1: `uipilot-training auto`
+ * Product training mode #1: `notlm-training auto`
  * Unattended growth: generate → tune → eval → auto ranker retrain.
  * Legacy alias: `train auto`.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { FlowStepDef } from '@uipilot/core';
-import { e2eScenariosFromFlow, glossaryStubsFromControls } from '@uipilot/author';
+import type { FlowStepDef } from '@notlm/core';
+import { e2eScenariosFromFlow, glossaryStubsFromControls } from '@notlm/author';
 import { cmdTrainAuto, cmdTrainPause, cmdTrainResume, cmdTrainStop } from './cmdTrainAuto.js';
 import { cmdRankerTrain } from './cmdRanker.js';
-import { resolveUipilotHome, pathExists, loadPackFolderJson } from './uipilotHome.js';
+import { resolveNotlmHome, pathExists, loadPackFolderJson } from './notlmHome.js';
 
 function hasFlag(args: string[], name: string): boolean {
   return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
@@ -49,9 +49,9 @@ function seedAuthoringArtifacts(home: string): void {
 
 export async function cmdAuto(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home}`);
+    console.error(`Missing NotLM home: ${home}`);
     process.exitCode = 1;
     return;
   }
@@ -63,7 +63,7 @@ export async function cmdAuto(args: string[]): Promise<void> {
       (a) => a !== '--unlimited' && !a.startsWith('--max-iterations')
     );
     filtered.push('--max-iterations=1000000');
-    console.log('auto → unlimited mode (stop via `uipilot-training auto stop`)');
+    console.log('auto → unlimited mode (stop via `notlm-training auto stop`)');
     await cmdTrainAuto(filtered);
     return;
   }

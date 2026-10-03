@@ -1,5 +1,5 @@
 {
-  "name": "@uipilot/mapper",
+  "name": "@notlm/mapper",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "dist"
   ],
   "dependencies": {
-    "@uipilot/core": "*",
+    "@notlm/core": "*",
     "node-html-parser": "^9.0.4"
   },
   "peerDependencies": {

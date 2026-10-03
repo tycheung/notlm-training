@@ -72,7 +72,7 @@ describe('cmdPull', () => {
   });
 
   it('writes validated exchanges to --out', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-pull-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-train-pull-'));
     const out = join(dir, 'ex.json');
     vi.stubGlobal(
       'fetch',
@@ -159,18 +159,18 @@ describe('cmdDraft', () => {
     expect(err.mock.calls[0]?.[0]).toMatch(/--from/);
   });
 
-  it('writes draft under .uipilot/drafts', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-draft-'));
+  it('writes draft under .notlm/drafts', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-train-draft-'));
     const from = join(dir, 'ex.json');
     writeFileSync(from, JSON.stringify([sampleExchange]), 'utf8');
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await cmdDraft(['--from', from, dir]);
     expect(String(log.mock.calls[0]?.[0])).toMatch(/Exchange draft/);
-    expect(existsSync(join(dir, '.uipilot'))).toBe(true);
+    expect(existsSync(join(dir, '.notlm'))).toBe(true);
   });
 
   it('accepts --from= form', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-draft2-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-train-draft2-'));
     const from = join(dir, 'ex.jsonl');
     writeFileSync(from, `${JSON.stringify(sampleExchange)}\n`, 'utf8');
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -190,8 +190,8 @@ describe('cmdFold', () => {
 
   it('writes pack-accept draft from exchange draft.json', async () => {
     const { cmdFold } = await import('./cli.js');
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-fold-'));
-    const home = join(dir, '.uipilot');
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-train-fold-'));
+    const home = join(dir, '.notlm');
     mkdirSync(join(home, 'pack'), { recursive: true });
     writeFileSync(
       join(home, 'pack', 'intents.json'),
@@ -220,7 +220,7 @@ describe('cmdMetrics', () => {
   });
 
   it('prints metrics with optional misses', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'uipilot-train-met-'));
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-train-met-'));
     const ex = join(dir, 'ex.json');
     const misses = join(dir, 'misses.json');
     writeFileSync(ex, JSON.stringify([sampleExchange]), 'utf8');

@@ -6,8 +6,8 @@ import {
   copyFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { IntentParsePack } from '@uipilot/core';
-import type { LlmProvider } from '@uipilot/llm';
+import type { IntentParsePack } from '@notlm/core';
+import type { LlmProvider } from '@notlm/llm';
 import { resolveLabelerKind } from '../labeler/layaLabeler.js';
 import {
   appendToVectorStore,
@@ -219,7 +219,7 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
   // Install SIGINT → pause (once).
   const onSig = () => {
     writeControl(dir, 'paused', 'SIGINT');
-    log('Paused (SIGINT). Resume with: uipilot-training train resume');
+    log('Paused (SIGINT). Resume with: notlm-training train resume');
   };
   if (typeof process !== 'undefined' && process.on) {
     process.on('SIGINT', onSig);
@@ -392,7 +392,7 @@ export async function runTrainAuto(input: RunTrainAutoInput): Promise<TrainAutoR
             }
           } else {
             log(
-              `  pending labeled pool size=${pending.candidates.length} (set UIPILOT_LABELER=laya|mock to label)`
+              `  pending labeled pool size=${pending.candidates.length} (set NOTLM_LABELER=laya|mock to label)`
             );
           }
         }

@@ -1,4 +1,4 @@
-import { validatePackFolder, type ValidationResult } from '@uipilot/schema';
+import { validatePackFolder, type ValidationResult } from '@notlm/schema';
 
 export type ParseModelJsonOk = { ok: true; data: Record<string, unknown> };
 export type ParseModelJsonFail = { ok: false; errors: string[]; checklist: string[] };

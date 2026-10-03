@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fine-tune Laya (RLCD) on UiPilot→Laya JSONL and emit a loadable checkpoint.
+"""Fine-tune Laya (RLCD) on NotLM→Laya JSONL and emit a loadable checkpoint.
 
 Requires: GPU + `pip install laya` + CUDA torch.
 Dry-run / missing GPU → writes metrics sidecar only (CI-safe).
@@ -439,7 +439,7 @@ def _train_rlcd(
             shutil.copy2(src, output_dir / name)
 
     cfg["fine_tuned"] = True
-    cfg["model_name"] = "laya-vb-uipilot"
+    cfg["model_name"] = "laya-vb-notlm"
     cfg["temperature"] = fitted_temps
     cfg.pop("temperature_by_options", None)
     (output_dir / "rl_agent_config.json").write_text(
@@ -490,37 +490,37 @@ def main() -> int:
     p.add_argument("--out", required=True)
     p.add_argument("--mode", default="full", choices=("full", "light"))
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--base", default=os.getenv("UIPILOT_LAYA_BASE", "convaiinnovations/laya"))
+    p.add_argument("--base", default=os.getenv("NOTLM_LAYA_BASE", "convaiinnovations/laya"))
     p.add_argument(
         "--init-from",
-        default=os.getenv("UIPILOT_LAYA_INIT_FROM", ""),
+        default=os.getenv("NOTLM_LAYA_INIT_FROM", ""),
         help="Local fine-tune dir to continue from (model.safetensors + encoder).",
     )
-    p.add_argument("--epochs", type=int, default=int(os.getenv("UIPILOT_LAYA_EPOCHS", "3")))
+    p.add_argument("--epochs", type=int, default=int(os.getenv("NOTLM_LAYA_EPOCHS", "3")))
     p.add_argument(
         "--epoch-offset",
         type=int,
-        default=int(os.getenv("UIPILOT_LAYA_EPOCH_OFFSET", "0")),
+        default=int(os.getenv("NOTLM_LAYA_EPOCH_OFFSET", "0")),
         help="Prior completed epochs (for logging only).",
     )
     p.add_argument(
         "--plateau-patience",
         type=int,
-        default=int(os.getenv("UIPILOT_LAYA_PLATEAU_PATIENCE", "0")),
+        default=int(os.getenv("NOTLM_LAYA_PLATEAU_PATIENCE", "0")),
         help="Stop after N epochs without avg_loss improve ≥ min-delta (0=disabled).",
     )
     p.add_argument(
         "--plateau-min-delta",
         type=float,
-        default=float(os.getenv("UIPILOT_LAYA_PLATEAU_MIN_DELTA", "0.05")),
+        default=float(os.getenv("NOTLM_LAYA_PLATEAU_MIN_DELTA", "0.05")),
     )
     p.add_argument(
         "--micro-batch",
         type=int,
-        default=int(os.getenv("UIPILOT_LAYA_MICRO_BATCH", "2")),
+        default=int(os.getenv("NOTLM_LAYA_MICRO_BATCH", "2")),
     )
     args = p.parse_args()
-    dry = args.dry_run or os.getenv("UIPILOT_LAYA_DRY_RUN") == "1"
+    dry = args.dry_run or os.getenv("NOTLM_LAYA_DRY_RUN") == "1"
 
     train_path = Path(args.train)
     out_dir = Path(args.out)

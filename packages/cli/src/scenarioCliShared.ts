@@ -1,15 +1,15 @@
 import {
   type ScenarioCandidate,
   type ScenarioGenerateMode,
-} from '@uipilot/author';
-import type { IntentParsePack } from '@uipilot/core';
+} from '@notlm/author';
+import type { IntentParsePack } from '@notlm/core';
 import {
   ensureDir,
   join,
   pathExists,
   readJsonFile,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function saturationDir(home: string): string {
   return join(home, 'saturation');

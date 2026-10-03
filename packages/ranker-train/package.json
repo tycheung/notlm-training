@@ -1,5 +1,5 @@
 {
-  "name": "@uipilot-training/ranker-train",
+  "name": "@notlm-training/ranker-train",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,8 +12,8 @@
   },
   "files": ["dist"],
   "dependencies": {
-    "@uipilot/core": "*",
-    "@uipilot/ranker": "*"
+    "@notlm/core": "*",
+    "@notlm/ranker": "*"
   },
   "scripts": {
     "build": "tsc -b"

@@ -1,32 +1,32 @@
-# uipilot-training
+# notlm-training
 
-Offline **tune / train / recalibrate** for UiPilot packs. Not the browser runtime.
+Offline **tune / train / recalibrate** for NotLM packs. Not the browser runtime.
 
-Operating **`uipilot` is sealed**: it does not name or advertise this repo. Training
+Operating **`notlm` is sealed**: it does not name or advertise this repo. Training
 is the only place that documents both sides.
 
 | Concern | Repo |
 |---------|------|
-| Runtime (`@uipilot/core`, `@uipilot/react`, schema, ranker **infer**) | sibling [`uipilot`](../uipilot) |
-| Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `uipilot` thin `uipilotCLI` |
+| Runtime (`@notlm/core`, `@notlm/react`, schema, ranker **infer**) | sibling [`notlm`](../notlm) |
+| Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `notlm` thin `notlmCLI` |
 | Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, conversation analyze, ranker **train** + ONNX export | **this repo** |
 
-**Sibling required:** root deps are `file:../uipilot/packages/{core,schema,ranker}`.
-Clone beside `uipilot`, build operating packages first, then install/build here.
+**Sibling required:** root deps are `file:../notlm/packages/{core,schema,ranker}`.
+Clone beside `notlm`, build operating packages first, then install/build here.
 
 ## Install
 
 ```bash
-cd uipilot && npm install && npm run build
-cd ../uipilot-training
+cd notlm && npm install && npm run build
+cd ../notlm-training
 npm install
-npm run build   # required before npx uipilot-training (dist/ gitignored)
+npm run build   # required before npx notlm-training (dist/ gitignored)
 ```
 
 Bootstrap a host folder once with the operating CLI, then improve here:
 
 ```bash
-uipilotCLI init ./my-app
+notlmCLI init ./my-app
 ```
 
 ## Training modes (product surface)
@@ -39,17 +39,17 @@ Starts from target flow behavior, then branches to more nebulous utterances.
 Auto-retrains `pack/ranker.json` after pack growth. Soft alias cap: **10 000** per step / FAQ entry.
 
 ```bash
-npx uipilot-training auto ./my-app
-npx uipilot-training auto ./my-app --pass-rate=0.99 --confidence=0.99 --unlimited
-npx uipilot-training auto ./my-app --fixture --window=20 --pass-rate=0.9
-npx uipilot-training auto pause ./my-app
-npx uipilot-training auto resume ./my-app
-npx uipilot-training auto stop ./my-app
-npx uipilot-training auto ranker ./my-app   # explicit retrain (also runs after tune)
+npx notlm-training auto ./my-app
+npx notlm-training auto ./my-app --pass-rate=0.99 --confidence=0.99 --unlimited
+npx notlm-training auto ./my-app --fixture --window=20 --pass-rate=0.9
+npx notlm-training auto pause ./my-app
+npx notlm-training auto resume ./my-app
+npx notlm-training auto stop ./my-app
+npx notlm-training auto ranker ./my-app   # explicit retrain (also runs after tune)
 ```
 
 Defaults: pass-rate/confidence 0.99 → window 459; max CPU/RAM 80%. BYO model via
-`UIPILOT_LLM_*`. State: `.uipilot/train-auto/`. Also seeds `e2e-scenarios.json` and
+`NOTLM_LLM_*`. State: `.notlm/train-auto/`. Also seeds `e2e-scenarios.json` and
 `drafts/glossary-from-controls.json` when missing.
 
 Runtime decisions stay **System One** (calibrated ranker/rules); LLM growth stays
@@ -63,18 +63,18 @@ local System One scorer, patch pack language JSON, loop until `hardFails=0` or
 pass-rate ≥ **0.999**.
 
 ```bash
-# Full run (needs UIPILOT_LLM_*)
-npx uipilot-training sharpen ./my-app --per-lane=5000 --pass-rate=0.999
+# Full run (needs NOTLM_LLM_*)
+npx notlm-training sharpen ./my-app --per-lane=5000 --pass-rate=0.999
 
 # CI / offline morph from pack seeds (no LLM)
-npx uipilot-training sharpen ./my-app --fixture --per-lane=5 --pass-rate=0.5
+npx notlm-training sharpen ./my-app --fixture --per-lane=5 --pass-rate=0.5
 
 # Subset of lanes
-npx uipilot-training sharpen ./my-app --lanes=faq,goto,ood --per-lane=100
+npx notlm-training sharpen ./my-app --lanes=faq,goto,ood --per-lane=100
 ```
 
-Writes growing pack pieces under `.uipilot/pack/` (unless `--no-write`) and a
-report at `.uipilot/train-sharpen/report.json`.
+Writes growing pack pieces under `.notlm/pack/` (unless `--no-write`) and a
+report at `.notlm/train-sharpen/report.json`.
 
 Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`,
 `tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
@@ -82,17 +82,17 @@ Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`,
 ### 3) `feedback` — chat / miss logs → targeted fix
 
 ```bash
-npx uipilot-training feedback pull --url …/uipilot/misses?exchanges_only=true --out ex.json
-npx uipilot-training feedback draft --from ex.json ./my-app
-npx uipilot-training feedback fold --from .uipilot/drafts/exchanges-…/draft.json ./my-app
-npx uipilot-training feedback accept <draftId> ./my-app   # accept + ranker retrain
+npx notlm-training feedback pull --url …/notlm/misses?exchanges_only=true --out ex.json
+npx notlm-training feedback draft --from ex.json ./my-app
+npx notlm-training feedback fold --from .notlm/drafts/exchanges-…/draft.json ./my-app
+npx notlm-training feedback accept <draftId> ./my-app   # accept + ranker retrain
 
-npx uipilot-training feedback conversations pull --url … --out conv.json
-npx uipilot-training feedback conversations analyze --from conv.json ./my-app --mode=review
-npx uipilot-training feedback run --from conv.json ./my-app --mode=auto [--branch-out]
+npx notlm-training feedback conversations pull --url … --out conv.json
+npx notlm-training feedback conversations analyze --from conv.json ./my-app --mode=review
+npx notlm-training feedback run --from conv.json ./my-app --mode=auto [--branch-out]
 
-npx uipilot-training feedback misses pull|export|draft-aliases …
-npx uipilot-training feedback metrics --from ex.json
+npx notlm-training feedback misses pull|export|draft-aliases …
+npx notlm-training feedback metrics --from ex.json
 ```
 
 `--mode=auto` on conversations analyze auto-accepts checked drafts. `--branch-out`
@@ -104,37 +104,37 @@ deprecated aliases.
 ## Authoring (not training modes)
 
 ```bash
-npx uipilot-training map|tune|prepare ./my-app
-npx uipilot-training scenarios saturate ./my-app --fixture
-npx uipilot-training intents tune ./my-app
-npx uipilot-training pack author|accept …
-npx uipilot-training extract static <srcDir> [packDir]
-npx uipilot-training extract host ../react-frontend   # product pack workshop → host .uipilot/
+npx notlm-training map|tune|prepare ./my-app
+npx notlm-training scenarios saturate ./my-app --fixture
+npx notlm-training intents tune ./my-app
+npx notlm-training pack author|accept …
+npx notlm-training extract static <srcDir> [packDir]
+npx notlm-training extract host ../react-frontend   # product pack workshop → host .notlm/
 ```
 
 ### Product packs (host deploy SoT)
 
-Sealed **`uipilot`** only ships demo packs. Additional / brand packs live in the **host app**:
+Sealed **`notlm`** only ships demo packs. Additional / brand packs live in the **host app**:
 
 | Step | Where |
 |------|--------|
 | Extract / map / tune / accept | this repo against `./react-frontend` (or any host) |
-| Deploy unit | `react-frontend/.uipilot/pack/*.json` → FE green / CloudFront |
+| Deploy unit | `react-frontend/.notlm/pack/*.json` → FE green / CloudFront |
 | Laya weights | backend promote path (not FE pack) |
 
 ```bash
-npx uipilot-training feedback pull --url … --out misses.json
-npx uipilot-training feedback draft --from misses.json ../react-frontend
-npx uipilot-training feedback fold --from .uipilot/drafts/…/draft.json ../react-frontend
-npx uipilot-training feedback accept <draftId> ../react-frontend
+npx notlm-training feedback pull --url … --out misses.json
+npx notlm-training feedback draft --from misses.json ../react-frontend
+npx notlm-training feedback fold --from .notlm/drafts/…/draft.json ../react-frontend
+npx notlm-training feedback accept <draftId> ../react-frontend
 # then commit FE pack + green deploy
 ```
 
 ## Providers
 
-Set `UIPILOT_LLM_*` (see `packages/llm/README.md`). Import from `@uipilot/llm` directly.
+Set `NOTLM_LLM_*` (see `packages/llm/README.md`). Import from `@notlm/llm` directly.
 
-Soft-label / auto label pool: `UIPILOT_LABELER=llm|laya|mock` (`mock` is deterministic, no GPU).
+Soft-label / auto label pool: `NOTLM_LABELER=llm|laya|mock` (`mock` is deterministic, no GPU).
 
 ## Laya decision model (local only)
 
@@ -142,17 +142,17 @@ Convert pack + scenarios to Laya typed-decision JSONL, then fine-tune on a **loc
 (GPU optional). Nightly server **promote** (Celery) updates CPU pack aliases + `ranker.json` only —
 it never runs `laya train` on the server.
 
-**Runtime cold path (sealed `uipilot`, not this repo):** NLU miss → host `fallbackLlm` (Laya) →
+**Runtime cold path (sealed `notlm`, not this repo):** NLU miss → host `fallbackLlm` (Laya) →
 optional host `secondaryFallbackLlm` (LLM) when `features.llmFallbackOnLayaMiss` is true.
 `feedback` MissExchanges may therefore carry `provider.chain=laya_then_llm` after a Laya refuse.
 
 ```bash
-npx uipilot-training laya convert ./my-app --mode=full
-npx uipilot-training laya train ./my-app --mode=light --dry-run   # CI-safe stub
-UIPILOT_LAYA_DRY_RUN=1 npx uipilot-training laya train ./my-app
+npx notlm-training laya convert ./my-app --mode=full
+npx notlm-training laya train ./my-app --mode=light --dry-run   # CI-safe stub
+NOTLM_LAYA_DRY_RUN=1 npx notlm-training laya train ./my-app
 ```
 
-Output: `.uipilot/laya/train.jsonl`, `manifest.json`, and (after train) checkpoint + metrics sidecar
+Output: `.notlm/laya/train.jsonl`, `manifest.json`, and (after train) checkpoint + metrics sidecar
 via `scripts/laya_train.py`.
 
 ## CI

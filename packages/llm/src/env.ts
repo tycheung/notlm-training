@@ -1,17 +1,17 @@
 import type { LlmEnv, LlmProviderKind } from './types.js';
 
 /**
- * Load UIPILOT_LLM_* from `process.env` only.
+ * Load NOTLM_LLM_* from `process.env` only.
  *
  * Never reads `.env` / secret files from disk — inject via shell, CI, or a
  * gitignored loader. Hardcoded API keys are forbidden.
  */
 export function loadLlmEnv(env: NodeJS.ProcessEnv = process.env): LlmEnv {
-  const providerRaw = (env.UIPILOT_LLM_PROVIDER ?? '').trim().toLowerCase();
+  const providerRaw = (env.NOTLM_LLM_PROVIDER ?? '').trim().toLowerCase();
   const provider = normalizeProvider(providerRaw);
   if (!provider) {
     throw new Error(
-      'UIPILOT_LLM_PROVIDER must be one of: ollama, openai, openai-compat, anthropic, huggingface'
+      'NOTLM_LLM_PROVIDER must be one of: ollama, openai, openai-compat, anthropic, huggingface'
     );
   }
 
@@ -24,20 +24,20 @@ export function loadLlmEnv(env: NodeJS.ProcessEnv = process.env): LlmEnv {
   };
 
   const baseUrl =
-    (env.UIPILOT_LLM_BASE_URL ?? '').trim().replace(/\/$/, '') || defaultBase[provider];
+    (env.NOTLM_LLM_BASE_URL ?? '').trim().replace(/\/$/, '') || defaultBase[provider];
   if (!baseUrl) {
-    throw new Error('UIPILOT_LLM_BASE_URL is required for openai-compat');
+    throw new Error('NOTLM_LLM_BASE_URL is required for openai-compat');
   }
 
-  const model = (env.UIPILOT_LLM_MODEL ?? '').trim();
+  const model = (env.NOTLM_LLM_MODEL ?? '').trim();
   if (!model) {
-    throw new Error('UIPILOT_LLM_MODEL is required');
+    throw new Error('NOTLM_LLM_MODEL is required');
   }
 
-  const apiKey = (env.UIPILOT_LLM_API_KEY ?? '').trim() || undefined;
+  const apiKey = (env.NOTLM_LLM_API_KEY ?? '').trim() || undefined;
 
   if (provider !== 'ollama' && !apiKey) {
-    throw new Error(`UIPILOT_LLM_API_KEY is required for ${provider}`);
+    throw new Error(`NOTLM_LLM_API_KEY is required for ${provider}`);
   }
 
   return { provider, baseUrl, apiKey, model };

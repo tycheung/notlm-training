@@ -12,7 +12,7 @@ import {
   writeExchangeDraft,
   writeFoldedPackDraft,
 } from './index.js';
-import type { MissExchange } from '@uipilot/core';
+import type { MissExchange } from '@notlm/core';
 
 const sample: MissExchange[] = [
   {
@@ -128,7 +128,7 @@ describe('recalibrate', () => {
   });
 
   it('writes draft.json under drafts/', () => {
-    const home = mkdtempSync(join(tmpdir(), 'uipilot-recal-'));
+    const home = mkdtempSync(join(tmpdir(), 'notlm-recal-'));
     const outDir = writeExchangeDraft(home, [sample[0]!]);
     expect(outDir).toContain('drafts');
     const draftPath = join(outDir, 'draft.json');
@@ -138,7 +138,7 @@ describe('recalibrate', () => {
   });
 
   it('folds exchange draft into pack-accept pieces (merges pack)', () => {
-    const home = mkdtempSync(join(tmpdir(), 'uipilot-fold-'));
+    const home = mkdtempSync(join(tmpdir(), 'notlm-fold-'));
     const pack = join(home, 'pack');
     mkdirSync(pack, { recursive: true });
     writeFileSync(
@@ -190,7 +190,7 @@ describe('recalibrate', () => {
   });
 
   it('writeConversationFoldDraft supports review and auto checked flags', () => {
-    const home = mkdtempSync(join(tmpdir(), 'uipilot-conv-'));
+    const home = mkdtempSync(join(tmpdir(), 'notlm-conv-'));
     mkdirSync(join(home, 'pack'), { recursive: true });
     writeFileSync(
       join(home, 'pack', 'intents.json'),

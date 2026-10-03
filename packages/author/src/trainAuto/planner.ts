@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@uipilot/llm';
+import type { LlmProvider } from '@notlm/llm';
 import { extractJsonText } from '../parseModelJson.js';
 import {
   TRAIN_AUTO_ACTIONS,

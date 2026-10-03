@@ -59,7 +59,7 @@ export type LayaConvertManifest = {
   manifestPath: string;
 };
 
-export type ConvertUipilotResult = {
+export type ConvertNotlmResult = {
   manifest: LayaConvertManifest;
   records: LayaTypedDecisionRecord[];
 };

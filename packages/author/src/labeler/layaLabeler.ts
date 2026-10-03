@@ -162,7 +162,7 @@ export function createMockLayaLabeler(opts?: { id?: string }): LabelProvider {
 }
 
 /**
- * Optional process bridge: runs `python -m uipilot_laya_label` with JSON on stdin.
+ * Optional process bridge: runs `python -m notlm_laya_label` with JSON on stdin.
  */
 export function createLayaProcessLabeler(opts: {
   checkpoint: string;
@@ -182,10 +182,10 @@ export function createLayaProcessLabeler(opts: {
           intents: ctx.intents,
           faq: ctx.faq,
         });
-        const bin = opts.pythonBin ?? process.env.UIPILOT_LAYA_PYTHON ?? 'python';
+        const bin = opts.pythonBin ?? process.env.NOTLM_LAYA_PYTHON ?? 'python';
         const text = await new Promise<string>((resolve, reject) => {
-          const child = spawn(bin, ['-m', 'uipilot_laya_label'], {
-            env: { ...process.env, UIPILOT_LAYA_CHECKPOINT: opts.checkpoint },
+          const child = spawn(bin, ['-m', 'notlm_laya_label'], {
+            env: { ...process.env, NOTLM_LAYA_CHECKPOINT: opts.checkpoint },
             stdio: ['pipe', 'pipe', 'pipe'],
           });
           let out = '';
@@ -227,7 +227,7 @@ export function createLayaProcessLabeler(opts: {
 }
 
 export function resolveLabelerKind(env: NodeJS.ProcessEnv = process.env): string {
-  return (env.UIPILOT_LABELER ?? 'llm').trim().toLowerCase();
+  return (env.NOTLM_LABELER ?? 'llm').trim().toLowerCase();
 }
 
 export function createLabelerFromEnv(env: NodeJS.ProcessEnv = process.env): LabelProvider | undefined {
@@ -236,11 +236,11 @@ export function createLabelerFromEnv(env: NodeJS.ProcessEnv = process.env): Labe
     return createMockLayaLabeler();
   }
   if (kind === 'laya') {
-    const checkpoint = env.UIPILOT_LAYA_CHECKPOINT?.trim();
+    const checkpoint = env.NOTLM_LAYA_CHECKPOINT?.trim();
     if (checkpoint) {
       return createLayaProcessLabeler({
         checkpoint,
-        fallbackMock: env.UIPILOT_LAYA_FALLBACK_MOCK !== '0',
+        fallbackMock: env.NOTLM_LAYA_FALLBACK_MOCK !== '0',
       });
     }
     return createMockLayaLabeler();

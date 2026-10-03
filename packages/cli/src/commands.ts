@@ -4,9 +4,9 @@ import {
   checklistToMarkdown,
   parseJobsYamlLite,
   writeJobsFlowDraft,
-} from '@uipilot/codegen';
-import type { ControlInventory, InventoriedControl } from '@uipilot/mapper';
-import { validatePackFolder } from '@uipilot/schema';
+} from '@notlm/codegen';
+import type { ControlInventory, InventoriedControl } from '@notlm/mapper';
+import { validatePackFolder } from '@notlm/schema';
 import {
   PACK_PIECES,
   copyTemplateFile,
@@ -16,10 +16,10 @@ import {
   packDir,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   templateRoot,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 export { cmdInventoryAttach, cmdInventoryCrawl } from './cmdInventory.js';
 export { cmdExtractStatic, cmdExtractHost } from './cmdExtract.js';
@@ -32,9 +32,9 @@ export {
 
 export async function cmdAnnotateChecklist(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -73,7 +73,7 @@ export async function cmdAnnotateChecklist(args: string[]): Promise<void> {
     {
       id: 'annotate-intents-check',
       kind: 'annotate',
-      message: 'Run uipilotCLI intents check until green before accepting drafts',
+      message: 'Run notlmCLI intents check until green before accepting drafts',
       checked: false,
     },
   ];
@@ -95,7 +95,7 @@ export async function cmdAnnotateChecklist(args: string[]): Promise<void> {
 }
 
 export async function cmdInit(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (pathExists(home)) {
     console.error(`Already exists: ${home}`);
     process.exitCode = 1;
@@ -148,9 +148,9 @@ export async function cmdInit(dir?: string): Promise<void> {
 }
 
 export async function cmdValidate(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -169,14 +169,14 @@ export async function cmdJobsImport(args: string[]): Promise<void> {
   const dir = args.filter((a) => a !== jobsFile && !a.startsWith('-')).at(-1);
 
   if (!jobsFile) {
-    console.error('Usage: uipilot-training jobs import <jobs.yaml|json> [dir]');
+    console.error('Usage: notlm-training jobs import <jobs.yaml|json> [dir]');
     process.exitCode = 1;
     return;
   }
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -196,7 +196,7 @@ export async function cmdJobsImport(args: string[]): Promise<void> {
 }
 
 /**
- * `uipilot-training checklist md [dir]` — print or `--write` CHECKLIST.md
+ * `notlm-training checklist md [dir]` — print or `--write` CHECKLIST.md
  */
 export async function cmdChecklistMd(args: string[]): Promise<void> {
   const writeIdx = args.indexOf('--write');
@@ -217,9 +217,9 @@ export async function cmdChecklistMd(args: string[]): Promise<void> {
     flagNames
   );
 
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -241,9 +241,9 @@ export async function cmdChecklistMd(args: string[]): Promise<void> {
 }
 
 export async function cmdDagGenerate(dir?: string): Promise<void> {
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }

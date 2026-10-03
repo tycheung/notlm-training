@@ -2,14 +2,14 @@ import {
   CONFIDENCE_HIGH_MIN,
   CONFIDENCE_MID_MIN,
   probabilityToConfidence,
-} from '@uipilot/core';
+} from '@notlm/core';
 import {
   evaluateRankerSoftScore,
   inferRankerJson,
   type RankerBandMetrics,
   type RankerEvalCase,
   type RankerModelJson,
-} from '@uipilot/ranker';
+} from '@notlm/ranker';
 
 export type CalibrationReport = {
   /** Soft-score hit rate (existing gate). */

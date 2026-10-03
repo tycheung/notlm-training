@@ -2,7 +2,7 @@
  * Composer-style nebula generation for train-auto (no LLM required).
  * Drunk / imprecise / route-confused asks + FAQ (incl. explicit non-capabilities).
  */
-import type { FaqEntry, IntentParsePack } from '@uipilot/core';
+import type { FaqEntry, IntentParsePack } from '@notlm/core';
 import type { GeneratedCandidate } from './generate.js';
 
 const CONFUSED_PREFIX = [

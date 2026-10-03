@@ -1,17 +1,17 @@
 /**
- * `uipilot-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]`
+ * `notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]`
  */
 import { spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { convertUipilotToLaya, type LayaConvertMode } from '@uipilot-training/laya-train';
+import { convertNotlmToLaya, type LayaConvertMode } from '@notlm-training/laya-train';
 import {
   ensureDir,
   pathExists,
   readJsonFile,
-  resolveUipilotHome,
+  resolveNotlmHome,
   writeJsonFile,
-} from './uipilotHome.js';
+} from './notlmHome.js';
 
 function parseFlag(args: string[], name: string): string | undefined {
   const eq = args.find((a) => a.startsWith(`${name}=`));
@@ -41,16 +41,16 @@ function parseMode(args: string[]): LayaConvertMode {
 
 export async function cmdLayaConvert(args: string[]): Promise<void> {
   const dir = positionalDir(args) ?? process.cwd();
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
   const mode = parseMode(args);
   const out =
     parseFlag(args, '--out') ?? join(home, 'laya');
-  const { manifest } = convertUipilotToLaya(dir, { mode, out });
+  const { manifest } = convertNotlmToLaya(dir, { mode, out });
   console.log(
     `Laya convert (${mode}): ${manifest.rows} rows → ${manifest.trainPath}\nmanifest: ${manifest.manifestPath}`
   );
@@ -58,9 +58,9 @@ export async function cmdLayaConvert(args: string[]): Promise<void> {
 
 export async function cmdLayaTrain(args: string[]): Promise<void> {
   const dir = positionalDir(args) ?? process.cwd();
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
-    console.error(`Missing UiPilot home: ${home} (run uipilotCLI init)`);
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
@@ -68,9 +68,9 @@ export async function cmdLayaTrain(args: string[]): Promise<void> {
   const layaDir = parseFlag(args, '--out') ?? join(home, 'laya');
   const checkpointDir = parseFlag(args, '--checkpoint') ?? join(layaDir, 'checkpoint');
   const dryRun =
-    hasFlag(args, '--dry-run') || process.env.UIPILOT_LAYA_DRY_RUN === '1';
+    hasFlag(args, '--dry-run') || process.env.NOTLM_LAYA_DRY_RUN === '1';
 
-  const { manifest } = convertUipilotToLaya(dir, { mode, out: layaDir });
+  const { manifest } = convertNotlmToLaya(dir, { mode, out: layaDir });
   console.log(`Converted ${manifest.rows} rows → ${manifest.trainPath}`);
 
   const script = join(
@@ -80,7 +80,7 @@ export async function cmdLayaTrain(args: string[]): Promise<void> {
     'scripts',
     'laya_train.py'
   );
-  const python = process.env.UIPILOT_LAYA_PYTHON ?? 'python';
+  const python = process.env.NOTLM_LAYA_PYTHON ?? 'python';
   const trainArgs = [
     script,
     '--train',
@@ -145,7 +145,7 @@ export async function cmdLaya(args: string[]): Promise<void> {
   if (sub === 'convert') await cmdLayaConvert(rest);
   else if (sub === 'train') await cmdLayaTrain(rest);
   else {
-    console.error('Usage: uipilot-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]');
+    console.error('Usage: notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]');
     process.exitCode = 1;
   }
 }

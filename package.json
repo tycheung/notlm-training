@@ -1,12 +1,12 @@
 {
-  "name": "uipilot-training",
+  "name": "notlm-training",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "UiPilot offline tune/train — MissExchange recalibration (not runtime)",
+  "description": "NotLM offline tune/train — MissExchange recalibration (not runtime)",
   "engines": { "node": ">=20" },
   "bin": {
-    "uipilot-training": "./packages/cli/dist/cli.js"
+    "notlm-training": "./packages/cli/dist/cli.js"
   },
   "workspaces": ["packages/*"],
   "scripts": {
@@ -14,12 +14,12 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "ci": "npm run build && npm run test:coverage",
-    "uipilot-training": "node packages/cli/dist/cli.js"
+    "notlm-training": "node packages/cli/dist/cli.js"
   },
   "dependencies": {
-    "@uipilot/core": "file:../uipilot/packages/core",
-    "@uipilot/schema": "file:../uipilot/packages/schema",
-    "@uipilot/ranker": "file:../uipilot/packages/ranker"
+    "@notlm/core": "file:../notlm/packages/core",
+    "@notlm/schema": "file:../notlm/packages/schema",
+    "@notlm/ranker": "file:../notlm/packages/ranker"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

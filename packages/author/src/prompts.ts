@@ -7,7 +7,7 @@ export function buildPackAuthorPrompt(input: {
   structuredDraft: unknown;
 }): string {
   return [
-    'You are a uipilot pack author.',
+    'You are a notlm pack author.',
     'Given a control inventory and a structured DAG draft, propose pack JSON pieces.',
     'Respond with a single JSON object only (no markdown prose). Keys may include:',
     'manifest, flow, controls, intents, binders, corpus.',
@@ -36,7 +36,7 @@ export function buildIntentTunePrompt(input: {
   flowSteps?: unknown;
 }): string {
   const parts = [
-    'You are tuning deterministic NLU intents for a uipilot pack.',
+    'You are tuning deterministic NLU intents for a notlm pack.',
     'Given current intents and labeled scenarios, propose improved intents + corpus.',
     'Respond with a single JSON object only (no markdown prose) shaped as:',
     '{ "intents": { "aliases": { "step_id": ["phrase one", "phrase two"] }, "meta": ["whats_next","go_back"] },',
@@ -68,7 +68,7 @@ export function buildConversationAnalyzePrompt(input: {
   currentFaq?: unknown;
 }): string {
   const parts = [
-    'You analyze full UiPilot coach conversations (hits and misses) to improve intent classification.',
+    'You analyze full NotLM coach conversations (hits and misses) to improve intent classification.',
     'Each conversation has conversationId and turns with role, text, outcome (hit|miss|blocked|confirm|slot_ask|adapter), stepId, missKind.',
     'Propose pack updates from patterns across the full flow — not single Q/A pairs alone.',
     'Respond with a single JSON object only (no markdown prose) shaped as:',

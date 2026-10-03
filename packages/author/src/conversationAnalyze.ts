@@ -1,5 +1,5 @@
-import type { ConversationRecord } from '@uipilot/core';
-import type { LlmProvider } from '@uipilot/llm';
+import type { ConversationRecord } from '@notlm/core';
+import type { LlmProvider } from '@notlm/llm';
 import { buildConversationAnalyzePrompt } from './prompts.js';
 import { extractJsonText } from './parseModelJson.js';
 

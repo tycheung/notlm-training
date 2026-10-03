@@ -2,8 +2,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
-import type { PackJsonInput } from '@uipilot/core';
-import type { LlmProvider } from '@uipilot/llm';
+import type { PackJsonInput } from '@notlm/core';
+import type { LlmProvider } from '@notlm/llm';
 import {
   CAPABILITY_LANES,
   applyPackPatch,
@@ -198,7 +198,7 @@ describe('capabilityStress sharpen', () => {
   });
 
   it('loads pack folder + catalog digest', () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-packload-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-packload-'));
     const packDir = join(root, 'pack');
     writeMiniPackDir(packDir, miniPack());
     expect(resolvePackFolder(root)).toBe(packDir);
@@ -405,7 +405,7 @@ describe('capabilityStress sharpen', () => {
   });
 
   it('fixture sharpen loop patches pack and writes report', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-sharpen-'));
+    const root = mkdtempSync(join(tmpdir(), 'notlm-sharpen-'));
     const packDir = join(root, 'pack');
     const reportDir = join(root, 'report');
     const pack = miniPack();

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { authorPackDraft } from './packAuthor.js';
 import { tuneIntents } from './intentsTune.js';
-import { checkIntents } from '@uipilot/core';
+import { checkIntents } from '@notlm/core';
 import { parseModelJson } from './parseModelJson.js';
 import { buildIntentTunePrompt, buildPackAuthorPrompt } from './prompts.js';
-import type { LlmProvider } from '@uipilot/llm';
+import type { LlmProvider } from '@notlm/llm';
 
 function mockProvider(text: string): LlmProvider {
   return {

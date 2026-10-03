@@ -2,7 +2,7 @@
  * Build end-to-end scenario stubs from flow `requires` chains.
  * Each step with requires gets a multi-step expect listing the unlock path.
  */
-import type { FlowStepDef } from '@uipilot/core';
+import type { FlowStepDef } from '@notlm/core';
 
 export type E2eScenario = {
   id: string;

@@ -8,7 +8,7 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../../../uipilot/packages/core" },
-    { "path": "../../../uipilot/packages/ranker" }
+    { "path": "../../../notlm/packages/core" },
+    { "path": "../../../notlm/packages/ranker" }
   ]
 }

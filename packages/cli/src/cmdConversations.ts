@@ -1,18 +1,18 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { analyzeConversations } from '@uipilot/author';
-import { createProviderFromEnv } from '@uipilot/llm';
+import { analyzeConversations } from '@notlm/author';
+import { createProviderFromEnv } from '@notlm/llm';
 import {
   validateConversationRecordList,
   validateConversationTurnList,
-} from '@uipilot/schema';
+} from '@notlm/schema';
 import {
   loadConversationsFromJson,
   loadConversationsFromRaw,
   writeConversationFoldDraft,
-} from '@uipilot-training/recalibrate';
+} from '@notlm-training/recalibrate';
 import { cmdPackAccept } from './cmdPackIntents.js';
-import { loadPackFolderJson, resolveUipilotHome } from './uipilotHome.js';
+import { loadPackFolderJson, resolveNotlmHome } from './notlmHome.js';
 
 function takeFlag(args: string[], name: string): string | undefined {
   const eq = args.findIndex((a) => a.startsWith(`${name}=`));
@@ -43,7 +43,7 @@ export async function cmdConversationsPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
   if (!url) {
     console.error(
-      'Usage: uipilot-training conversations pull --url <endpoint> [--out <path>]'
+      'Usage: notlm-training conversations pull --url <endpoint> [--out <path>]'
     );
     process.exitCode = 1;
     return;
@@ -83,7 +83,7 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
-      'Usage: uipilot-training conversations analyze --from <conv.json> [dir] [--mode=review|auto] [--fixture]'
+      'Usage: notlm-training conversations analyze --from <conv.json> [dir] [--mode=review|auto] [--fixture]'
     );
     process.exitCode = 1;
     return;
@@ -92,10 +92,10 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
   const modeRaw = takeFlag(args, '--mode') ?? 'review';
   const mode = modeRaw === 'auto' ? 'auto' : 'review';
   const fixture =
-    args.includes('--fixture') || process.env.UIPILOT_SATURATE_FIXTURE === '1';
+    args.includes('--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
 
   const dir = positionalDir(args, ['--from', '--mode']);
-  const { home } = resolveUipilotHome(dir);
+  const { home } = resolveNotlmHome(dir);
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
     mkdirSync(join(home, 'pack'), { recursive: true });
@@ -169,12 +169,12 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
   if (mode === 'auto') {
     await cmdPackAccept(draftId, dir);
     console.log(
-      'Auto-accepted. Next: run `uipilotCLI intents check` on the project to gate scenarios.'
+      'Auto-accepted. Next: run `notlmCLI intents check` on the project to gate scenarios.'
     );
   } else {
     console.log(
-      'Review fold draft, set meta.checked=true, then: uipilot-training pack accept ' +
-        `${draftId} && uipilotCLI intents check`
+      'Review fold draft, set meta.checked=true, then: notlm-training pack accept ' +
+        `${draftId} && notlmCLI intents check`
     );
   }
 }

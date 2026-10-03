@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
-import { convertUipilotToLaya, buildRecordsForRows } from './convert.js';
+import { convertNotlmToLaya, buildRecordsForRows } from './convert.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -11,10 +11,10 @@ const fixtureRoot = resolve(
   '../../../fixtures/minimal-pack'
 );
 
-describe('convertUipilotToLaya', () => {
+describe('convertNotlmToLaya', () => {
   it('writes JSONL + manifest from minimal-pack fixture', () => {
     const out = mkdtempSync(join(tmpdir(), 'laya-out-'));
-    const { manifest, records } = convertUipilotToLaya(fixtureRoot, {
+    const { manifest, records } = convertNotlmToLaya(fixtureRoot, {
       mode: 'full',
       out,
     });

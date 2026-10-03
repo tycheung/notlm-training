@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@uipilot/llm';
+import type { LlmProvider } from '@notlm/llm';
 import { extractJsonText, parseModelJson } from './parseModelJson.js';
 
 export type DraftTalkResult = {
@@ -70,7 +70,7 @@ ${titles || '(none)'}`;
   try {
     const raw = await opts.provider.completeChat({
       messages: [
-        { role: 'system', content: 'Return only valid JSON for UiPilot pack drafts.' },
+        { role: 'system', content: 'Return only valid JSON for NotLM pack drafts.' },
         { role: 'user', content: prompt },
       ],
     });

@@ -6,8 +6,8 @@ import { cmdInventoryAttach } from './cmdInventory.js';
 
 describe('inventory attach', () => {
   it('writes drafts/controls-nav.json from control-map', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'uipilot-attach-'));
-    const home = join(root, '.uipilot');
+    const root = mkdtempSync(join(tmpdir(), 'notlm-attach-'));
+    const home = join(root, '.notlm');
     mkdirSync(join(home, 'pack'), { recursive: true });
     writeFileSync(
       join(home, 'inventory.json'),

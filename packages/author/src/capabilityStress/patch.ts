@@ -3,8 +3,8 @@
  */
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { LlmProvider } from '@uipilot/llm';
-import type { PackJsonInput } from '@uipilot/core';
+import type { LlmProvider } from '@notlm/llm';
+import type { PackJsonInput } from '@notlm/core';
 import { extractJsonText, parseModelJson } from '../parseModelJson.js';
 import { lanePatchPrePrompt } from './lanes.js';
 import { catalogDigest } from './packLoad.js';
@@ -134,7 +134,7 @@ export async function proposePackPatch(input: {
   try {
     const raw = await input.provider.completeChat({
       messages: [
-        { role: 'system', content: 'Return only valid JSON pack patch for UiPilot.' },
+        { role: 'system', content: 'Return only valid JSON pack patch for NotLM.' },
         { role: 'user', content: prompt },
       ],
     });

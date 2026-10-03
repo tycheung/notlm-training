@@ -1,6 +1,6 @@
 /**
  * System One local scorer — port of VB director-assistant-capability-stress-local.mjs
- * using @uipilot/core loadPackFromJson + catalog/heuristic matchers.
+ * using @notlm/core loadPackFromJson + catalog/heuristic matchers.
  */
 import {
   defaultOodRefuseReply,
@@ -19,7 +19,7 @@ import {
   resolveDiscourse,
   type LoadedPack,
   type PackJsonInput,
-} from '@uipilot/core';
+} from '@notlm/core';
 import type { CapabilityLane } from './lanes.js';
 import { LANE_EXPECT } from './lanes.js';
 

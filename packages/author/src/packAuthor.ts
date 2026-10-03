@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@uipilot/llm';
+import type { LlmProvider } from '@notlm/llm';
 import { buildPackAuthorPrompt } from './prompts.js';
 import { parseModelJson } from './parseModelJson.js';
 
