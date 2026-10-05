@@ -3,8 +3,8 @@ dist/
 coverage/
 *.tsbuildinfo
 .DS_Store
-# Local / host-specific trainer scripts — not part of the published product CLI
-scripts/
+# Local / host-specific trainer scripts at repo root (not packages/*/scripts)
+/scripts/
 
 # Laya local convert/train artifacts
 **/.notlm/laya/

@@ -41,26 +41,51 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@notlm/core': resolve(__dirname, '../notlm/packages/core/dist/index.js'),
-      '@notlm/schema': resolve(__dirname, '../notlm/packages/schema/dist/index.js'),
-      '@notlm/ranker': resolve(__dirname, '../notlm/packages/ranker/dist/index.js'),
-      '@notlm-training/llm': resolve(__dirname, 'packages/llm/src/index.ts'),
-      '@notlm-training/author': resolve(__dirname, 'packages/author/src/index.ts'),
-      '@notlm-training/mapper': resolve(__dirname, 'packages/mapper/src/index.ts'),
-      '@notlm-training/codegen': resolve(__dirname, 'packages/codegen/src/index.ts'),
-      '@notlm-training/recalibrate': resolve(
-        __dirname,
-        'packages/recalibrate/src/index.ts'
-      ),
-      '@notlm-training/ranker-train': resolve(
-        __dirname,
-        'packages/ranker-train/src/index.ts'
-      ),
-      '@notlm-training/laya-train': resolve(
-        __dirname,
-        'packages/laya-train/src/index.ts'
-      ),
-    },
+    alias: [
+      {
+        find: '@notlm/core/loadFolder',
+        replacement: resolve(__dirname, '../notlm/packages/core/dist/loadFolder.js'),
+      },
+      {
+        find: '@notlm/core',
+        replacement: resolve(__dirname, '../notlm/packages/core/dist/index.js'),
+      },
+      {
+        find: '@notlm/schema',
+        replacement: resolve(__dirname, '../notlm/packages/schema/dist/index.js'),
+      },
+      {
+        find: '@notlm/ranker',
+        replacement: resolve(__dirname, '../notlm/packages/ranker/dist/index.js'),
+      },
+      {
+        find: '@notlm-training/llm',
+        replacement: resolve(__dirname, 'packages/llm/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/author',
+        replacement: resolve(__dirname, 'packages/author/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/mapper',
+        replacement: resolve(__dirname, 'packages/mapper/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/codegen',
+        replacement: resolve(__dirname, 'packages/codegen/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/recalibrate',
+        replacement: resolve(__dirname, 'packages/recalibrate/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/ranker-train',
+        replacement: resolve(__dirname, 'packages/ranker-train/src/index.ts'),
+      },
+      {
+        find: '@notlm-training/laya-train',
+        replacement: resolve(__dirname, 'packages/laya-train/src/index.ts'),
+      },
+    ],
   },
 });

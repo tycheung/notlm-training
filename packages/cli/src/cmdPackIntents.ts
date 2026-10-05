@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { authorPackDraft, tuneIntents } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
 import { createProviderFromEnv } from '@notlm-training/llm';
+import { hasFlag, positionalDirFirst } from './cliFlags.js';
 import {
   PACK_PIECES,
   copyTemplateFile,
@@ -33,7 +34,13 @@ function appendChecklist(home: string, items: Array<Record<string, unknown>>): v
   writeJsonFile(path, { items: list });
 }
 
-export async function cmdPackAuthor(dir?: string): Promise<void> {
+function wantsFixture(args: string[]): boolean {
+  return hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
+}
+
+export async function cmdPackAuthor(args: string[] = []): Promise<void> {
+  const dir = positionalDirFirst(args);
+  const fixture = wantsFixture(args);
   const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
@@ -48,8 +55,20 @@ export async function cmdPackAuthor(dir?: string): Promise<void> {
     ? readJsonFile(join(home, 'structured-draft.json'))
     : { steps: [] };
 
-  const provider = createProviderFromEnv();
-  const result = await authorPackDraft({ provider, inventory, structuredDraft });
+  let provider: ReturnType<typeof createProviderFromEnv> | null = null;
+  if (!fixture) {
+    try {
+      provider = createProviderFromEnv();
+    } catch {
+      console.log('pack author: no LLM env — using fixture draft');
+    }
+  }
+  const result = await authorPackDraft({
+    provider,
+    inventory,
+    structuredDraft,
+    fixture: fixture || !provider,
+  });
   const draftId = newDraftId('pack');
   const outDir = join(draftsDir(home), draftId);
   ensureDir(outDir);
@@ -85,7 +104,9 @@ export async function cmdPackAuthor(dir?: string): Promise<void> {
   console.log(`Draft written to ${outDir}`);
 }
 
-export async function cmdIntentsTune(dir?: string): Promise<void> {
+export async function cmdIntentsTune(args: string[] = []): Promise<void> {
+  const dir = positionalDirFirst(args);
+  const fixture = wantsFixture(args);
   const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
@@ -115,7 +136,14 @@ export async function cmdIntentsTune(dir?: string): Promise<void> {
     failingCases = check.results.filter((r) => !r.ok);
   }
 
-  const provider = createProviderFromEnv();
+  let provider: ReturnType<typeof createProviderFromEnv> | null = null;
+  if (!fixture) {
+    try {
+      provider = createProviderFromEnv();
+    } catch {
+      console.log('intents tune: no LLM env — using fixture tune');
+    }
+  }
   const result = await tuneIntents({
     provider,
     currentIntents,
@@ -123,6 +151,7 @@ export async function cmdIntentsTune(dir?: string): Promise<void> {
     failingCases,
     inventory,
     flowSteps: files.flow,
+    fixture: fixture || !provider,
   });
 
   const draftId = newDraftId('intents');

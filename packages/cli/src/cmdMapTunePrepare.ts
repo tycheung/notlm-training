@@ -7,6 +7,7 @@ import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { runIntentsTuneIfPossible } from './cmdScenariosAsk.js';
 import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { hasFlag, positionalDirFirst } from './cliFlags.js';
+import { exited } from './cliExit.js';
 
 function stripFlags(args: string[], names: string[]): string[] {
   const drop = new Set(names);
@@ -42,7 +43,7 @@ export async function cmdMap(args: string[]): Promise<void> {
 
   if (withLlm) {
     console.log('map: running pack author (--llm) → drafts/ only');
-    await cmdPackAuthor(dir);
+    await cmdPackAuthor(dir ? [dir] : []);
   }
 }
 
@@ -71,7 +72,7 @@ export async function cmdTune(args: string[]): Promise<void> {
 
   console.log('tune: scenarios saturate…');
   await cmdScenariosSaturate(saturateArgs);
-  if (process.exitCode && process.exitCode !== 0) return;
+  if (exited()) return;
 
   if (!forceFixture || process.env.NOTLM_LLM_PROVIDER) {
     console.log('tune: intents tune…');
@@ -84,7 +85,7 @@ export async function cmdTune(args: string[]): Promise<void> {
 export async function cmdPrepare(args: string[]): Promise<void> {
   console.log('prepare: map…');
   await cmdMap(stripFlags(args, []) /* keep --llm for map */);
-  if (process.exitCode && process.exitCode !== 0) return;
+  if (exited()) return;
 
   console.log('prepare: tune…');
   // Do not pass --llm into tune; map already consumed it

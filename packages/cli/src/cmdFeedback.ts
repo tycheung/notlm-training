@@ -15,6 +15,7 @@ import { cmdRankerTrain } from './cmdRanker.js';
 import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { cmdPackAccept } from './commands.js';
 import { hasFlag } from './cliFlags.js';
+import { exited } from './cliExit.js';
 
 /**
  * Subcommands:
@@ -91,6 +92,7 @@ export async function cmdFeedback(args: string[]): Promise<void> {
       return;
     }
     await cmdPackAccept(draftId, dir);
+    if (exited()) return;
     await cmdRankerTrain(dir ? [dir] : []);
     return;
   }

@@ -1,8 +1,15 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { normalizeMissRecordList, parseMissRecords } from '@notlm/core';
+import {
+  normalizeMissRecordList,
+  parseMissExchanges,
+  parseMissRecords,
+  type MissExchange,
+  type MissRecord,
+} from '@notlm/core';
+import { buildExchangeDraft } from '@notlm-training/recalibrate';
 import { validateMissRecordList } from '@notlm/schema';
-import { draftsDir, pathExists, resolveNotlmHome } from './notlmHome.js';
+import { draftsDir, loadPackFolderJson, pathExists, resolveNotlmHome } from './notlmHome.js';
 import { FEEDBACK_PATH_FLAGS, positionalDir, takeFlag } from './cliFlags.js';
 
 function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: string): void {
@@ -13,6 +20,88 @@ function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: s
   } else {
     process.stdout.write(payload);
   }
+}
+
+function flowStepIds(home: string): Set<string> {
+  const ids = new Set<string>();
+  try {
+    const files = loadPackFolderJson(home);
+    const flow = files.flow;
+    if (Array.isArray(flow)) {
+      for (const s of flow) {
+        if (s && typeof s === 'object' && typeof (s as { id?: string }).id === 'string') {
+          ids.add((s as { id: string }).id);
+        }
+      }
+    }
+  } catch {
+    /* optional pack */
+  }
+  return ids;
+}
+
+function isMissExchange(row: MissRecord): row is MissExchange {
+  return typeof (row as MissExchange).llmReply === 'string';
+}
+
+function draftFromMissRecords(
+  records: MissRecord[],
+  stepIds: Set<string>
+): ReturnType<typeof buildExchangeDraft> {
+  const proposedAliases: Record<string, string[]> = {};
+  const proposedFaq: Array<{ id: string; aliases: string[]; text: string; stepId?: string }> = [];
+  const proposedCorpus: Array<{ utterance: string; expect: { stepId: string | null } }> = [];
+  const byKind = new Map<string, string[]>();
+
+  for (const r of records) {
+    const text = (r.text ?? '').trim();
+    if (!text) continue;
+    const list = byKind.get(r.kind) ?? [];
+    if (!list.includes(text)) list.push(text);
+    byKind.set(r.kind, list);
+
+    const raw = (r.rawIntent ?? '').trim();
+    const gotoFromRaw = raw.startsWith('goto:') ? raw.slice(5).trim() : '';
+    const kind = String(r.kind);
+    const gotoLike =
+      kind === 'goto' ||
+      (gotoFromRaw && (stepIds.has(gotoFromRaw) || gotoFromRaw !== 'goto')) ||
+      stepIds.has(kind);
+
+    if (gotoLike) {
+      const stepId = gotoFromRaw || (stepIds.has(kind) ? kind : '_unknown_step');
+      (proposedAliases[stepId] ??= []).push(text);
+      proposedCorpus.push({
+        utterance: text,
+        expect: { stepId: stepId === '_unknown_step' ? null : stepId },
+      });
+      continue;
+    }
+
+    proposedCorpus.push({ utterance: text, expect: { stepId: null } });
+  }
+
+  return {
+    note: 'Human-review: fold into intents/faq/corpus via feedback fold or pack accept after meta.checked=true.',
+    buckets: {
+      faqCount: 0,
+      gotoSteps: Object.fromEntries(
+        Object.entries(proposedAliases).map(([k, v]) => [k, v.length])
+      ),
+      metaCount: 0,
+      refuseCount: proposedCorpus.filter((c) => c.expect.stepId === null).length,
+      unlabeledCount: records.length,
+    },
+    proposedAliases,
+    proposedFaq,
+    proposedCorpus,
+    exchanges: [],
+    byKind: Object.fromEntries(byKind),
+    records,
+  } as ReturnType<typeof buildExchangeDraft> & {
+    byKind: Record<string, string[]>;
+    records: MissRecord[];
+  };
 }
 
 /** Export miss records from a JSON/JSONL dump (e.g. localStorage snapshot). */
@@ -82,25 +171,39 @@ export async function cmdMissesDraftAliases(args: string[]): Promise<void> {
     return;
   }
 
-  const records = parseMissRecords(readFileSync(fromPath, 'utf8'));
-  const byKind = new Map<string, string[]>();
-  for (const r of records) {
-    const text = (r.text ?? '').trim();
-    if (!text) continue;
-    const list = byKind.get(r.kind) ?? [];
-    if (!list.includes(text)) list.push(text);
-    byKind.set(r.kind, list);
+  const raw = readFileSync(fromPath, 'utf8');
+  let draft: Record<string, unknown>;
+  try {
+    const exchanges = parseMissExchanges(raw);
+    if (exchanges.some(isMissExchange)) {
+      draft = buildExchangeDraft(exchanges as MissExchange[]) as Record<string, unknown>;
+      const byKind = new Map<string, string[]>();
+      for (const r of exchanges) {
+        const text = (r.text ?? '').trim();
+        if (!text) continue;
+        const list = byKind.get(r.kind) ?? [];
+        if (!list.includes(text)) list.push(text);
+        byKind.set(r.kind, list);
+      }
+      draft.byKind = Object.fromEntries(byKind);
+      draft.records = exchanges;
+    } else {
+      throw new Error('not exchanges');
+    }
+  } catch {
+    const records = parseMissRecords(raw);
+    draft = draftFromMissRecords(records, flowStepIds(home)) as Record<string, unknown>;
   }
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const outDir = join(draftsDir(home), `misses-${stamp}`);
   mkdirSync(outDir, { recursive: true });
-  const draft = {
-    note: 'Human-review: fold unique miss texts into intents aliases / corpus, then delete.',
-    counts: Object.fromEntries([...byKind.entries()].map(([k, v]) => [k, v.length])),
-    byKind: Object.fromEntries(byKind),
-    records,
-  };
   writeFileSync(join(outDir, 'draft.json'), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
-  console.log(`Miss draft → ${outDir} (${records.length} records)`);
+  writeFileSync(
+    join(outDir, 'meta.json'),
+    `${JSON.stringify({ checked: false, kind: 'misses-draft' }, null, 2)}\n`,
+    'utf8'
+  );
+  const count = Array.isArray(draft.records) ? draft.records.length : 0;
+  console.log(`Miss draft → ${outDir} (${count} records)`);
 }

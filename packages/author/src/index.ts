@@ -109,6 +109,7 @@ export { glossaryStubsFromControls, type GlossaryStub } from './glossaryCrawl.js
 
 export {
   CAPABILITY_LANES,
+  CORE_CAPABILITY_LANES,
   LANE_EXPECT,
   laneGeneratePrePrompt,
   lanePatchPrePrompt,

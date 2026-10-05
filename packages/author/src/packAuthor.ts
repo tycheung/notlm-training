@@ -16,11 +16,57 @@ export type AuthorPackDraftResult =
   | { ok: true; draft: PackDraftPieces }
   | { ok: false; errors: string[]; checklist: string[] };
 
-export async function authorPackDraft(input: {
-  provider: LlmProvider;
+export function fixtureAuthorPackDraft(input: {
   inventory: unknown;
   structuredDraft: unknown;
+}): AuthorPackDraftResult {
+  const sd = input.structuredDraft as {
+    steps?: Array<{ id: string; title?: string; kind?: string; requires?: string[] }>;
+  };
+  const steps = Array.isArray(sd?.steps) ? sd.steps : [];
+  const flow = steps.map((s) => ({
+    id: s.id,
+    title: s.title ?? s.id.replace(/_/g, ' '),
+    kind: s.kind ?? 'hard',
+    requires: s.requires ?? [],
+    keywords: [s.title ?? s.id, s.id.replace(/_/g, ' ')],
+  }));
+  if (!flow.length) {
+    flow.push({
+      id: 'start',
+      title: 'Start',
+      kind: 'hard',
+      requires: [],
+      keywords: ['start'],
+    });
+  }
+  return {
+    ok: true,
+    draft: {
+      manifest: { id: 'fixture-pack' },
+      flow,
+      controls: [],
+      intents: {
+        aliases: Object.fromEntries(
+          flow.map((s) => [s.id, [`open ${s.title.toLowerCase()}`, s.title]])
+        ),
+      },
+      binders: flow.map((s) => ({ stepId: s.id, path: 'data._fixture', op: 'truthy' })),
+      corpus: [],
+      raw: { fixture: true },
+    },
+  };
+}
+
+export async function authorPackDraft(input: {
+  provider?: LlmProvider | null;
+  inventory: unknown;
+  structuredDraft: unknown;
+  fixture?: boolean;
 }): Promise<AuthorPackDraftResult> {
+  if (input.fixture || !input.provider) {
+    return fixtureAuthorPackDraft(input);
+  }
   const prompt = buildPackAuthorPrompt({
     inventory: input.inventory,
     structuredDraft: input.structuredDraft,

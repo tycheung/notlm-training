@@ -2,7 +2,7 @@
  * 13 System One capability lanes — same contract as VB local stress matrices.
  * Host packs supply domain seeds; lane expect/failIf stay generic enough for scoring.
  */
-export const CAPABILITY_LANES = [
+export const CORE_CAPABILITY_LANES = [
   'faq',
   'goto',
   'query',
@@ -11,11 +11,16 @@ export const CAPABILITY_LANES = [
   'context',
   'tour',
   'search',
+  'ood',
+  'disambiguation',
+] as const;
+
+/** All 13 lanes (core + compare, handoff, audit) for opt-in stress runs. */
+export const CAPABILITY_LANES = [
+  ...CORE_CAPABILITY_LANES,
   'compare',
   'handoff',
   'audit',
-  'ood',
-  'disambiguation',
 ] as const;
 
 export type CapabilityLane = (typeof CAPABILITY_LANES)[number];
@@ -71,7 +76,7 @@ export const LANE_EXPECT: Record<CapabilityLane, LaneExpect> = {
     failIf: 'do not have the ability to help',
   },
   handoff: {
-    expect: 'Query |desk|handoff|standup|pending|today|summary',
+    expect: 'Query |handoff|standup|pending|today|summary|shift',
     failIf: 'do not have the ability to help|Opening ',
   },
   audit: {

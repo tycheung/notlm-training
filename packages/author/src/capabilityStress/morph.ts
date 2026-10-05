@@ -2,7 +2,7 @@
  * Morph / expand utterances from pack seeds when no LLM (CI fixture / offline).
  */
 import { normalizeUtterance, type PackJsonInput } from '@notlm/core';
-import { CAPABILITY_LANES, LANE_EXPECT, type CapabilityLane } from './lanes.js';
+import { CAPABILITY_LANES, CORE_CAPABILITY_LANES, LANE_EXPECT, type CapabilityLane } from './lanes.js';
 import type { StressCase } from './score.js';
 
 const PREFIXES = ['', 'please ', 'can you ', 'hey ', 'quick: '];
@@ -138,7 +138,7 @@ export function morphCasesForLane(
 
 export function morphFullSuite(pack: PackJsonInput, perLane: number): StressCase[] {
   const out: StressCase[] = [];
-  for (const lane of CAPABILITY_LANES) {
+  for (const lane of CORE_CAPABILITY_LANES) {
     out.push(...morphCasesForLane(lane, pack, perLane));
   }
   return out;

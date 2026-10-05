@@ -17,6 +17,7 @@ import {
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
+import { exited } from './cliExit.js';
 import {
   hasFlag,
   loadPriorCandidates,
@@ -146,7 +147,7 @@ export async function cmdScenariosAsk(args: string[]): Promise<void> {
     .concat([`--force=${force}`, '--mode=user-ask']);
   console.log(`ask: generating ~${force} user questions (mode=user-ask)…`);
   await cmdScenariosGenerate(genArgs);
-  if (process.exitCode && process.exitCode !== 0) return;
+  if (exited()) return;
 
   if (hasFlag(args, '--label-pool') || hasFlag(args, '--label')) {
     console.log('ask: soft-labeling full candidate pool…');

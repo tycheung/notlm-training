@@ -12,14 +12,49 @@ export type TuneIntentsResult =
     }
   | { ok: false; errors: string[]; checklist: string[]; raw?: Record<string, unknown> };
 
+export function fixtureTuneIntents(input: {
+  currentIntents: unknown;
+  scenarios: unknown;
+}): TuneIntentsResult {
+  const intents = structuredClone(input.currentIntents ?? { aliases: {} }) as {
+    aliases?: Record<string, string[]>;
+  };
+  if (!intents.aliases || typeof intents.aliases !== 'object') {
+    intents.aliases = {};
+  }
+  const corpus: Array<{ utterance: string; expect: { stepId: string | null } }> = [];
+  const scenarios = Array.isArray(input.scenarios) ? input.scenarios : [];
+  for (const raw of scenarios) {
+    if (!raw || typeof raw !== 'object') continue;
+    const row = raw as { utterance?: string; expect?: { stepId?: string | null } };
+    const utterance = typeof row.utterance === 'string' ? row.utterance.trim() : '';
+    const stepId = row.expect?.stepId;
+    if (!utterance) continue;
+    if (typeof stepId === 'string' && stepId) {
+      (intents.aliases[stepId] ??= []).push(utterance);
+      corpus.push({ utterance, expect: { stepId } });
+    } else if (stepId === null) {
+      corpus.push({ utterance, expect: { stepId: null } });
+    }
+  }
+  for (const [k, list] of Object.entries(intents.aliases)) {
+    intents.aliases[k] = [...new Set(list.map((t) => t.trim()).filter(Boolean))];
+  }
+  return { ok: true, intents, corpus, raw: { fixture: true } };
+}
+
 export async function tuneIntents(input: {
-  provider: LlmProvider;
+  provider?: LlmProvider | null;
   currentIntents: unknown;
   scenarios: unknown;
   failingCases?: unknown;
   inventory?: unknown;
   flowSteps?: unknown;
+  fixture?: boolean;
 }): Promise<TuneIntentsResult> {
+  if (input.fixture || !input.provider) {
+    return fixtureTuneIntents(input);
+  }
   const prompt = buildIntentTunePrompt({
     currentIntents: input.currentIntents,
     scenarios: input.scenarios,

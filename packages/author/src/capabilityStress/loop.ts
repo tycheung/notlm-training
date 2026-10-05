@@ -5,7 +5,7 @@
  */
 import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
-import { CAPABILITY_LANES, type CapabilityLane } from './lanes.js';
+import { CORE_CAPABILITY_LANES, type CapabilityLane } from './lanes.js';
 import { generateFullSuite } from './generate.js';
 import {
   applyPackPatch,
@@ -82,7 +82,7 @@ export async function runAutoLoop(input: {
 }): Promise<AutoLoopReport> {
   const config = resolveAutoConfig(input.config);
   const log = input.onLog || (() => undefined);
-  const lanes = config.lanes || [...CAPABILITY_LANES];
+  const lanes = config.lanes || [...CORE_CAPABILITY_LANES];
 
   let pack = input.pack;
   const fixedSuite = Boolean(input.cases);

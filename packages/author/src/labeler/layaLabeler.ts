@@ -1,7 +1,7 @@
 /**
  * LabelProvider seam for offline saturation — Laya checkpoint, mock, or LLM via softLabel.
  */
-import { aliasesMap, scoreStep } from '@notlm-training/laya-train';
+import { aliasesMap, layaLabelScriptsDir, scoreStep } from '@notlm-training/laya-train';
 import type { SoftLabelResult, SoftLabeledScenario } from '../saturation/softLabel.js';
 
 export type LabelCandidate = { id?: string; utterance: string };
@@ -156,9 +156,16 @@ export function createLayaProcessLabeler(opts: {
           faq: ctx.faq,
         });
         const bin = opts.pythonBin ?? process.env.NOTLM_LAYA_PYTHON ?? 'python';
+        const scriptsDir = layaLabelScriptsDir();
         const text = await new Promise<string>((resolve, reject) => {
           const child = spawn(bin, ['-m', 'notlm_laya_label'], {
-            env: { ...process.env, NOTLM_LAYA_CHECKPOINT: opts.checkpoint },
+            env: {
+              ...process.env,
+              NOTLM_LAYA_CHECKPOINT: opts.checkpoint,
+              PYTHONPATH: [scriptsDir, process.env.PYTHONPATH].filter(Boolean).join(
+                process.platform === 'win32' ? ';' : ':'
+              ),
+            },
             stdio: ['pipe', 'pipe', 'pipe'],
           });
           let out = '';

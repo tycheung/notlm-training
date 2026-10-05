@@ -6,3 +6,9 @@ export function layaTrainScriptPath(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   return join(here, '..', 'scripts', 'laya_train.py');
 }
+
+/** Directory to put on PYTHONPATH for `python -m notlm_laya_label`. */
+export function layaLabelScriptsDir(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  return join(here, '..', 'scripts');
+}

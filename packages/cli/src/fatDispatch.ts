@@ -100,12 +100,12 @@ export async function runFatCli(argv: string[]): Promise<void> {
       await cmdDagGenerate(rest[0]);
       break;
     case 'pack':
-      if (sub === 'author') await cmdPackAuthor(rest[0]);
+      if (sub === 'author') await cmdPackAuthor(rest);
       else if (sub === 'accept') await cmdPackAccept(rest[0]!, rest[1]);
       else throw new Error('Usage: pack author|accept …');
       break;
     case 'intents':
-      if (sub === 'tune') await cmdIntentsTune(rest[0]);
+      if (sub === 'tune') await cmdIntentsTune(rest);
       else throw new Error('Usage: intents tune … (intents check stays on notlmCLI)');
       break;
     case 'scenarios':

@@ -7,8 +7,12 @@ import {
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  NOTLM_DIRNAME,
+  resolveNotlmHome as resolveNotlmHomeCore,
+} from '@notlm/core/loadFolder';
 
-export const NOTLM_DIRNAME = '.notlm';
+export { NOTLM_DIRNAME };
 
 export type NotlmHome = {
   /** Directory containing `.notlm` (or that is the home itself). */
@@ -18,17 +22,7 @@ export type NotlmHome = {
 };
 
 export function resolveNotlmHome(dir?: string): NotlmHome {
-  const projectRoot = resolve(dir ?? process.cwd());
-  if (basenameIsNotlm(projectRoot)) {
-    return { projectRoot: dirname(projectRoot), home: projectRoot };
-  }
-  const nested = join(projectRoot, NOTLM_DIRNAME);
-  return { projectRoot, home: nested };
-}
-
-function basenameIsNotlm(p: string): boolean {
-  const base = p.replace(/[/\\]+$/, '').split(/[/\\]/).pop();
-  return base === NOTLM_DIRNAME;
+  return resolveNotlmHomeCore(dir);
 }
 
 export function ensureDir(path: string): void {
