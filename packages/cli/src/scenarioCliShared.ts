@@ -1,13 +1,20 @@
 import {
+  buildContextTreePlan,
+  llmBatchGenerator,
+  splitContextBatchGenerator,
+  type BatchGenerator,
   type ScenarioCandidate,
   type ScenarioGenerateMode,
 } from '@notlm-training/author';
 import type { IntentParsePack } from '@notlm/core';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import { join } from 'node:path';
 import {
   ensureDir,
+  loadPackFolderJson,
   pathExists,
   readJsonFile,
+  resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
 import { hasFlag, parseFlag, positionalDir } from './cliFlags.js';
@@ -119,6 +126,106 @@ function resolveProductBlurb(
   return fromConfig || undefined;
 }
 
+function requireNotlmHome(args: string[]): string | null {
+  const dir = positionalDir(args);
+  const { home } = resolveNotlmHome(dir);
+  if (!pathExists(home)) {
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
+    process.exitCode = 1;
+    return null;
+  }
+  return home;
+}
+
+export type ScenarioPackContext = {
+  files: Record<string, unknown>;
+  productBlurb?: string;
+  pack: IntentParsePack;
+  prior: ScenarioCandidate[];
+  inventory?: unknown;
+  structuredDraft?: unknown;
+  mode: ScenarioGenerateMode;
+  useFixture: boolean;
+};
+
+/** Load pack + optional home JSON; returns null after setting exitCode if pack invalid. */
+function loadScenarioPackContext(home: string, args: string[]): ScenarioPackContext | null {
+  const files = loadPackFolderJson(home);
+  const productBlurb = resolveProductBlurb(args, files);
+  const pack = asIntentPack(files);
+  if (!pack) {
+    console.error('pack/ requires flow.json and intents.json');
+    process.exitCode = 1;
+    return null;
+  }
+  const prior = loadPriorCandidates(home);
+  const inventory = pathExists(join(home, 'inventory.json'))
+    ? readJsonFile(join(home, 'inventory.json'))
+    : undefined;
+  const structuredDraft = pathExists(join(home, 'structured-draft.json'))
+    ? readJsonFile(join(home, 'structured-draft.json'))
+    : undefined;
+  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
+  const mode = resolveGenerateMode(args);
+  return {
+    files,
+    productBlurb,
+    pack,
+    prior,
+    inventory,
+    structuredDraft,
+    mode,
+    useFixture,
+  };
+}
+
+/** Fixture vs split-context vs plain LLM batch generator; writes context-tree.json. */
+function installScenarioGeneratePipeline(
+  home: string,
+  ctx: ScenarioPackContext,
+  args: string[]
+): { generateBatch: BatchGenerator; splitNote: string } {
+  const fixtureSeed = ctx.mode === 'user-ask' ? USER_ASK_FIXTURE_SEED : FIXTURE_SEED;
+  const wantSplit = ctx.mode === 'flow' && !hasFlag(args, '--no-split-context');
+  const treePlan = buildContextTreePlan(ctx.pack);
+  let generateBatch: BatchGenerator;
+  let splitNote = 'off';
+  if (ctx.useFixture) {
+    generateBatch = fixtureBatchGenerator(fixtureSeed);
+    splitNote = 'fixture';
+  } else if (wantSplit) {
+    const split = splitContextBatchGenerator({
+      pack: ctx.pack,
+      provider: createProviderFromEnv(),
+      inventory: ctx.inventory,
+      structuredDraft: ctx.structuredDraft,
+      productBlurb: ctx.productBlurb,
+      enabled: true,
+    });
+    generateBatch = split.generateBatch;
+    splitNote = split.plan.muddy
+      ? `auto(${split.plan.modes.length} modes, ${split.plan.sharedPhraseCount} shared phrases)`
+      : 'auto(clean)';
+  } else {
+    generateBatch = llmBatchGenerator({
+      provider: createProviderFromEnv(),
+      flowSteps: ctx.files.flow,
+      intents: ctx.files.intents,
+      inventory: ctx.inventory,
+      structuredDraft: ctx.structuredDraft,
+      productBlurb: ctx.productBlurb,
+      mode: ctx.mode,
+    });
+  }
+  ensureDir(saturationDir(home));
+  writeJsonFile(join(saturationDir(home), 'context-tree.json'), {
+    updatedAt: new Date().toISOString(),
+    ...treePlan,
+    splitNote,
+  });
+  return { generateBatch, splitNote };
+}
+
 function resolveGenerateMode(args: string[]): ScenarioGenerateMode {
   const raw = (parseFlag(args, '--mode') ?? '').trim().toLowerCase();
   if (raw === 'user-ask' || raw === 'ask' || raw === 'blurb') return 'user-ask';
@@ -159,10 +266,13 @@ export {
   bareNumbers,
   fixtureBatchGenerator,
   hasFlag,
+  installScenarioGeneratePipeline,
   loadPriorCandidates,
+  loadScenarioPackContext,
   parseFlag,
   parseForceCount,
   positionalDir,
+  requireNotlmHome,
   resolveGenerateMode,
   resolveProductBlurb,
   saturationDir,

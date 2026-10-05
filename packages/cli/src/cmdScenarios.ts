@@ -1,13 +1,10 @@
 import {
   faqDraftFromSoftLabels,
-  llmBatchGenerator,
   mineIntentFailures,
   runHardAugment,
   runSaturationLoop,
   scoreBatchAgainstPrior,
   softLabelCandidates,
-  splitContextBatchGenerator,
-  buildContextTreePlan,
   type ScenarioCandidate,
 } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
@@ -16,102 +13,37 @@ import { join } from 'node:path';
 import {
   draftsDir,
   ensureDir,
-  loadPackFolderJson,
   pathExists,
-  readJsonFile,
-  resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
 import {
-  FIXTURE_SEED,
-  USER_ASK_FIXTURE_SEED,
   appendChecklist,
-  asIntentPack,
   bareNumbers,
-  fixtureBatchGenerator,
   hasFlag,
-  loadPriorCandidates,
+  installScenarioGeneratePipeline,
+  loadScenarioPackContext,
   parseFlag,
   parseForceCount,
-  positionalDir,
-  resolveGenerateMode,
-  resolveProductBlurb,
+  requireNotlmHome,
   saturationDir,
   stamp,
   writeSaturationArtifacts,
 } from './scenarioCliShared.js';
 
 export async function cmdScenariosGenerate(args: string[]): Promise<void> {
-  const dir = positionalDir(args);
-  const { home } = resolveNotlmHome(dir);
-  if (!pathExists(home)) {
-    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
-    process.exitCode = 1;
-    return;
-  }
+  const home = requireNotlmHome(args);
+  if (!home) return;
 
   const forceCount = parseForceCount(args);
   const bare = bareNumbers(args);
   const batchSize = Number(
     parseFlag(args, '--batch') ?? bare[0] ?? (forceCount ? String(forceCount) : '100')
   );
-  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
-  const mode = resolveGenerateMode(args);
-  const files = loadPackFolderJson(home);
-  const productBlurb = resolveProductBlurb(args, files);
-  const pack = asIntentPack(files);
-  if (!pack) {
-    console.error('pack/ requires flow.json and intents.json');
-    process.exitCode = 1;
-    return;
-  }
+  const ctx = loadScenarioPackContext(home, args);
+  if (!ctx) return;
 
-  const prior = loadPriorCandidates(home);
-  const inventory = pathExists(join(home, 'inventory.json'))
-    ? readJsonFile(join(home, 'inventory.json'))
-    : undefined;
-  const structuredDraft = pathExists(join(home, 'structured-draft.json'))
-    ? readJsonFile(join(home, 'structured-draft.json'))
-    : undefined;
-
-  const fixtureSeed = mode === 'user-ask' ? USER_ASK_FIXTURE_SEED : FIXTURE_SEED;
-  const wantSplit = mode === 'flow' && !hasFlag(args, '--no-split-context');
-  const treePlan = buildContextTreePlan(pack);
-  let generateBatch;
-  let splitNote = 'off';
-  if (useFixture) {
-    generateBatch = fixtureBatchGenerator(fixtureSeed);
-    splitNote = 'fixture';
-  } else if (wantSplit) {
-    const split = splitContextBatchGenerator({
-      pack,
-      provider: createProviderFromEnv(),
-      inventory,
-      structuredDraft,
-      productBlurb,
-      enabled: true,
-    });
-    generateBatch = split.generateBatch;
-    splitNote = split.plan.muddy
-      ? `auto(${split.plan.modes.length} modes, ${split.plan.sharedPhraseCount} shared phrases)`
-      : 'auto(clean)';
-  } else {
-    generateBatch = llmBatchGenerator({
-      provider: createProviderFromEnv(),
-      flowSteps: files.flow,
-      intents: files.intents,
-      inventory,
-      structuredDraft,
-      productBlurb,
-      mode,
-    });
-  }
-  ensureDir(saturationDir(home));
-  writeJsonFile(join(saturationDir(home), 'context-tree.json'), {
-    updatedAt: new Date().toISOString(),
-    ...treePlan,
-    splitNote,
-  });
+  const { generateBatch, splitNote } = installScenarioGeneratePipeline(home, ctx, args);
+  const { pack, prior, productBlurb, mode, useFixture } = ctx;
 
   if (forceCount !== undefined) {
     const result = await runHardAugment({
@@ -233,13 +165,8 @@ async function softLabelAndDraft(
  */
 
 export async function cmdScenariosSaturate(args: string[]): Promise<void> {
-  const dir = positionalDir(args);
-  const { home } = resolveNotlmHome(dir);
-  if (!pathExists(home)) {
-    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
-    process.exitCode = 1;
-    return;
-  }
+  const home = requireNotlmHome(args);
+  if (!home) return;
 
   const forceCount = parseForceCount(args);
   const bare = bareNumbers(args);
@@ -250,63 +177,11 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
   const maxBatches = Number(
     parseFlag(args, '--max-batches') ?? (forceCount !== undefined ? '1' : bare[1] ?? '50')
   );
-  const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
-  const mode = resolveGenerateMode(args);
-  const files = loadPackFolderJson(home);
-  const productBlurb = resolveProductBlurb(args, files);
-  const pack = asIntentPack(files);
-  if (!pack) {
-    console.error('pack/ requires flow.json and intents.json');
-    process.exitCode = 1;
-    return;
-  }
+  const ctx = loadScenarioPackContext(home, args);
+  if (!ctx) return;
 
-  const prior = loadPriorCandidates(home);
-  const inventory = pathExists(join(home, 'inventory.json'))
-    ? readJsonFile(join(home, 'inventory.json'))
-    : undefined;
-  const structuredDraft = pathExists(join(home, 'structured-draft.json'))
-    ? readJsonFile(join(home, 'structured-draft.json'))
-    : undefined;
-
-  const fixtureSeed = mode === 'user-ask' ? USER_ASK_FIXTURE_SEED : FIXTURE_SEED;
-  const wantSplit = mode === 'flow' && !hasFlag(args, '--no-split-context');
-  const treePlan = buildContextTreePlan(pack);
-  let generateBatch;
-  let splitNote = 'off';
-  if (useFixture) {
-    generateBatch = fixtureBatchGenerator(fixtureSeed);
-    splitNote = 'fixture';
-  } else if (wantSplit) {
-    const split = splitContextBatchGenerator({
-      pack,
-      provider: createProviderFromEnv(),
-      inventory,
-      structuredDraft,
-      productBlurb,
-      enabled: true,
-    });
-    generateBatch = split.generateBatch;
-    splitNote = split.plan.muddy
-      ? `auto(${split.plan.modes.length} modes, ${split.plan.sharedPhraseCount} shared phrases)`
-      : 'auto(clean)';
-  } else {
-    generateBatch = llmBatchGenerator({
-      provider: createProviderFromEnv(),
-      flowSteps: files.flow,
-      intents: files.intents,
-      inventory,
-      structuredDraft,
-      productBlurb,
-      mode,
-    });
-  }
-  ensureDir(saturationDir(home));
-  writeJsonFile(join(saturationDir(home), 'context-tree.json'), {
-    updatedAt: new Date().toISOString(),
-    ...treePlan,
-    splitNote,
-  });
+  const { generateBatch, splitNote } = installScenarioGeneratePipeline(home, ctx, args);
+  const { pack, prior, productBlurb, mode, useFixture, files } = ctx;
 
   const result =
     forceCount !== undefined
@@ -399,4 +274,3 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
  * `notlm-training scenarios label-pool [dir] [--chunk=50] [--fixture]`
  * Soft-label the entire saturation/candidates.json pool in chunks → drafts/.
  */
-
