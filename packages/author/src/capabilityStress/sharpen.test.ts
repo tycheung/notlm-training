@@ -18,8 +18,8 @@ import {
   morphFullSuite,
   proposePackPatch,
   resolvePackFolder,
-  resolveSharpenConfig,
-  runSharpenLoop,
+  resolveAutoConfig,
+  runAutoLoop,
   scoreCase,
   scoreSuite,
   writePackFolder,
@@ -411,7 +411,7 @@ describe('capabilityStress sharpen', () => {
     const pack = miniPack();
     writeMiniPackDir(packDir, pack);
 
-    const cfg = resolveSharpenConfig({
+    const cfg = resolveAutoConfig({
       perLane: 4,
       passRate: 0.5,
       maxRounds: 5,
@@ -420,7 +420,7 @@ describe('capabilityStress sharpen', () => {
       lanes: ['goto', 'faq', 'ood'],
     });
 
-    const report = await runSharpenLoop({
+    const report = await runAutoLoop({
       pack,
       packDir,
       reportDir,
@@ -452,7 +452,7 @@ describe('capabilityStress sharpen', () => {
         expect: 'Opening',
       },
     ];
-    const repair = await runSharpenLoop({
+    const repair = await runAutoLoop({
       pack: miniPack(),
       packDir,
       reportDir: join(root, 'report2'),
@@ -560,7 +560,7 @@ describe('capabilityStress sharpen', () => {
       text: `open create tournament`,
       expect: '^IMPOSSIBLE_NEVER_MATCH$',
     }));
-    const stalled = await runSharpenLoop({
+    const stalled = await runAutoLoop({
       pack: miniPack(),
       packDir,
       reportDir: join(root, 'report3'),

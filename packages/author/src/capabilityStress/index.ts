@@ -27,18 +27,12 @@ export {
   applyPackPatch,
   writePackFolder,
   writeAutoReport,
-  writeSharpenReport,
   type PackPatch,
 } from './patch.js';
 export {
   DEFAULT_AUTO,
-  DEFAULT_SHARPEN,
   resolveAutoConfig,
-  resolveSharpenConfig,
   runAutoLoop,
-  runSharpenLoop,
   type AutoLoopConfig,
-  type SharpenConfig,
   type AutoLoopReport,
-  type SharpenReport,
 } from './loop.js';

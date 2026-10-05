@@ -29,9 +29,6 @@ export type AutoLoopConfig = {
   lanes?: CapabilityLane[];
 };
 
-/** @deprecated Use AutoLoopConfig */
-export type SharpenConfig = AutoLoopConfig;
-
 export type AutoLoopReport = {
   ok: boolean;
   rounds: number;
@@ -47,9 +44,6 @@ export type AutoLoopReport = {
   stopReason: 'max_rounds' | 'no_failures' | 'stalled';
 };
 
-/** @deprecated Use AutoLoopReport */
-export type SharpenReport = AutoLoopReport;
-
 export const DEFAULT_AUTO: AutoLoopConfig = {
   perLane: 5000,
   passRate: 0.999,
@@ -57,9 +51,6 @@ export const DEFAULT_AUTO: AutoLoopConfig = {
   fixture: false,
   writePack: true,
 };
-
-/** @deprecated Use DEFAULT_AUTO */
-export const DEFAULT_SHARPEN = DEFAULT_AUTO;
 
 export function resolveAutoConfig(
   partial: Partial<AutoLoopConfig> = {}
@@ -73,9 +64,6 @@ export function resolveAutoConfig(
     lanes: partial.lanes,
   };
 }
-
-/** @deprecated Use resolveAutoConfig */
-export const resolveSharpenConfig = resolveAutoConfig;
 
 function meetsTarget(summary: SuiteSummary, target: number): boolean {
   // Never report success while hard fails remain — pass-rate alone is not enough.
@@ -203,6 +191,3 @@ export async function runAutoLoop(input: {
   writeAutoReport(input.reportDir, report);
   return report;
 }
-
-/** @deprecated Use runAutoLoop */
-export const runSharpenLoop = runAutoLoop;

@@ -255,9 +255,6 @@ export function writeAutoReport(outDir: string, report: unknown): void {
   writeFileSync(join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
 
-/** @deprecated Use writeAutoReport */
-export const writeSharpenReport = writeAutoReport;
-
 export function readJsonIfExists<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return JSON.parse(readFileSync(path, 'utf8')) as T;

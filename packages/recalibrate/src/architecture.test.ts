@@ -52,7 +52,16 @@ describe('training architecture', () => {
 
   it('ships training package dirs', () => {
     const names = readdirSync(join(ROOT, 'packages'));
-    for (const need of ['author', 'mapper', 'codegen', 'llm', 'recalibrate', 'cli', 'ranker-train']) {
+    for (const need of [
+      'author',
+      'mapper',
+      'codegen',
+      'llm',
+      'recalibrate',
+      'cli',
+      'ranker-train',
+      'laya-train',
+    ]) {
       expect(names).toContain(need);
     }
   });
