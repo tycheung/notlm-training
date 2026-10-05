@@ -273,6 +273,40 @@ export function foldExchangeDraft(
 }
 
 /** Write folded pack pieces under `.notlm/drafts/<id>/` for pack accept. */
+function writeFoldedDraftDir(
+  outDir: string,
+  folded: ReturnType<typeof foldExchangeDraft>
+): void {
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, 'intents.json'), `${JSON.stringify(folded.intents, null, 2)}\n`);
+  writeFileSync(join(outDir, 'faq.json'), `${JSON.stringify(folded.faq, null, 2)}\n`);
+  writeFileSync(join(outDir, 'corpus.json'), `${JSON.stringify(folded.corpus, null, 2)}\n`);
+  writeFileSync(
+    join(outDir, 'scenarios.json'),
+    `${JSON.stringify(folded.scenarios, null, 2)}\n`
+  );
+  writeFileSync(join(outDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
+}
+
+function loadCurrentPackPieces(homeDir: string, packDir?: string) {
+  const pack = packDir ?? join(homeDir, 'pack');
+  const currentIntents = readJsonIfExists<IntentsPiece>(join(pack, 'intents.json'), {
+    aliases: {},
+  });
+  const currentFaq = readJsonIfExists<FaqEntry[]>(join(pack, 'faq.json'), []);
+  const currentCorpus = readJsonIfExists<CorpusCase[]>(join(pack, 'corpus.json'), []);
+  const currentScenarios = readJsonIfExists<CorpusCase[]>(
+    join(homeDir, 'scenarios.json'),
+    []
+  );
+  return {
+    currentIntents,
+    currentFaq: Array.isArray(currentFaq) ? currentFaq : [],
+    currentCorpus: Array.isArray(currentCorpus) ? currentCorpus : [],
+    currentScenarios: Array.isArray(currentScenarios) ? currentScenarios : [],
+  };
+}
+
 export function writeFoldedPackDraft(
   homeDir: string,
   exchangeDraftPath: string,
@@ -286,37 +320,15 @@ export function writeFoldedPackDraft(
     );
   }
 
-  const pack = opts?.packDir ?? join(homeDir, 'pack');
-  const currentIntents = readJsonIfExists<IntentsPiece>(join(pack, 'intents.json'), {
-    aliases: {},
-  });
-  const currentFaq = readJsonIfExists<FaqEntry[]>(join(pack, 'faq.json'), []);
-  const currentCorpus = readJsonIfExists<CorpusCase[]>(join(pack, 'corpus.json'), []);
-  const currentScenarios = readJsonIfExists<CorpusCase[]>(
-    join(homeDir, 'scenarios.json'),
-    []
-  );
-
   const draftId = `exchanges-fold-${new Date().toISOString().replace(/[:.]/g, '-')}`;
   const folded = foldExchangeDraft(draft, {
-    currentIntents,
-    currentFaq: Array.isArray(currentFaq) ? currentFaq : [],
-    currentCorpus: Array.isArray(currentCorpus) ? currentCorpus : [],
-    currentScenarios: Array.isArray(currentScenarios) ? currentScenarios : [],
+    ...loadCurrentPackPieces(homeDir, opts?.packDir),
     draftId,
     sourcePath: exchangeDraftPath,
   });
 
   const outDir = join(homeDir, 'drafts', draftId);
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, 'intents.json'), `${JSON.stringify(folded.intents, null, 2)}\n`);
-  writeFileSync(join(outDir, 'faq.json'), `${JSON.stringify(folded.faq, null, 2)}\n`);
-  writeFileSync(join(outDir, 'corpus.json'), `${JSON.stringify(folded.corpus, null, 2)}\n`);
-  writeFileSync(
-    join(outDir, 'scenarios.json'),
-    `${JSON.stringify(folded.scenarios, null, 2)}\n`
-  );
-  writeFileSync(join(outDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
+  writeFoldedDraftDir(outDir, folded);
   return outDir;
 }
 
@@ -357,23 +369,9 @@ export function writeConversationFoldDraft(
   };
   writeFileSync(join(proposalDir, 'draft.json'), `${JSON.stringify({ ...draft, conversations: proposal.conversations }, null, 2)}\n`);
 
-  const pack = opts?.packDir ?? join(homeDir, 'pack');
-  const currentIntents = readJsonIfExists<IntentsPiece>(join(pack, 'intents.json'), {
-    aliases: {},
-  });
-  const currentFaq = readJsonIfExists<FaqEntry[]>(join(pack, 'faq.json'), []);
-  const currentCorpus = readJsonIfExists<CorpusCase[]>(join(pack, 'corpus.json'), []);
-  const currentScenarios = readJsonIfExists<CorpusCase[]>(
-    join(homeDir, 'scenarios.json'),
-    []
-  );
-
   const draftId = `conversations-fold-${stamp}`;
   const folded = foldExchangeDraft(draft, {
-    currentIntents,
-    currentFaq: Array.isArray(currentFaq) ? currentFaq : [],
-    currentCorpus: Array.isArray(currentCorpus) ? currentCorpus : [],
-    currentScenarios: Array.isArray(currentScenarios) ? currentScenarios : [],
+    ...loadCurrentPackPieces(homeDir, opts?.packDir),
     draftId,
     sourcePath: join(proposalDir, 'draft.json'),
     kind: 'conversations-fold',
@@ -381,15 +379,7 @@ export function writeConversationFoldDraft(
   });
 
   const foldDir = join(homeDir, 'drafts', draftId);
-  mkdirSync(foldDir, { recursive: true });
-  writeFileSync(join(foldDir, 'intents.json'), `${JSON.stringify(folded.intents, null, 2)}\n`);
-  writeFileSync(join(foldDir, 'faq.json'), `${JSON.stringify(folded.faq, null, 2)}\n`);
-  writeFileSync(join(foldDir, 'corpus.json'), `${JSON.stringify(folded.corpus, null, 2)}\n`);
-  writeFileSync(
-    join(foldDir, 'scenarios.json'),
-    `${JSON.stringify(folded.scenarios, null, 2)}\n`
-  );
-  writeFileSync(join(foldDir, 'meta.json'), `${JSON.stringify(folded.meta, null, 2)}\n`);
+  writeFoldedDraftDir(foldDir, folded);
   return { proposalDir, foldDir, draftId };
 }
 
