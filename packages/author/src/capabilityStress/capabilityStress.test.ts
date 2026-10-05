@@ -179,8 +179,8 @@ function writeMiniPackDir(packDir: string, pack: PackJsonInput): void {
 
 describe('capabilityStress sharpen', () => {
   it('exposes core + full lane sets and preset pre-prompts', () => {
-    expect(CORE_CAPABILITY_LANES).toHaveLength(10);
     expect(CAPABILITY_LANES).toHaveLength(13);
+    expect(CORE_CAPABILITY_LANES).toHaveLength(10);
     const prompt = laneGeneratePrePrompt({
       lane: 'goto',
       productRole: 'test',
@@ -334,7 +334,7 @@ describe('capabilityStress sharpen', () => {
   it('morph generates per-lane suite including empty-seed fallbacks', async () => {
     const pack = miniPack();
     const cases = morphFullSuite(pack, 3);
-    expect(cases.length).toBe(CORE_CAPABILITY_LANES.length * 3);
+    expect(cases.length).toBe(CAPABILITY_LANES.length * 3);
     for (const lane of CAPABILITY_LANES) {
       expect(morphCasesForLane(lane, pack, 1).length).toBe(1);
     }

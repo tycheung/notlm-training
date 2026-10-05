@@ -2,10 +2,11 @@
  * System One auto loop (lane stress):
  * generate N×13 lane prompts → score → patch pack language → iterate
  * until hardFails=0 and passRate >= target (default 0.999).
+ * Default lanes = full CAPABILITY_LANES (13); override via config.lanes.
  */
 import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
-import { CORE_CAPABILITY_LANES, type CapabilityLane } from './lanes.js';
+import { CAPABILITY_LANES, type CapabilityLane } from './lanes.js';
 import { generateFullSuite } from './generate.js';
 import {
   applyPackPatch,
@@ -82,7 +83,7 @@ export async function runAutoLoop(input: {
 }): Promise<AutoLoopReport> {
   const config = resolveAutoConfig(input.config);
   const log = input.onLog || (() => undefined);
-  const lanes = config.lanes || [...CORE_CAPABILITY_LANES];
+  const lanes = config.lanes || [...CAPABILITY_LANES];
 
   let pack = input.pack;
   const fixedSuite = Boolean(input.cases);

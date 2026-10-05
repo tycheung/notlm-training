@@ -1,10 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { resolveNotlmHomeDir } from '@notlm/core/loadFolder';
 
 export function resolveNotlmHome(dir: string): string {
-  const base = dir.replace(/[/\\]+$/, '');
-  if (base.split(/[/\\]/).pop() === '.notlm') return base;
-  return join(base, '.notlm');
+  return resolveNotlmHomeDir(dir).home;
 }
 
 export function readJsonFile(path: string): unknown {

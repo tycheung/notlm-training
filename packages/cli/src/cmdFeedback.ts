@@ -2,7 +2,6 @@
  * Product training mode #2: `notlm-training feedback`
  * Live chat/miss logs → LLM drafts → accept → optional branch-out + ranker retrain.
  *
- * Legacy aliases: exchanges *, conversations *, misses *, metrics
  */
 import { cmdPull, cmdDraft, cmdFold, cmdMetrics, takeFlag } from './cli.js';
 import { cmdConversationsAnalyze, cmdConversationsPull } from './cmdConversations.js';

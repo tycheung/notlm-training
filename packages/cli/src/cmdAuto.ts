@@ -3,7 +3,6 @@
  * System One lane stress — LLM (or fixture morph) generates N×13 lane prompts,
  * scores against pack, patches language JSON, iterates to hardFails=0 / 99.9%.
  * Subcommand: `auto ranker` for explicit pack/ranker.json retrain.
- * Explicit ranker: `auto ranker`.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

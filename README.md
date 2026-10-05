@@ -15,7 +15,7 @@ is the only place that documents both sides.
 (operating packages at **0.1.0** public-ready). Clone beside `notlm`, build
 operating packages first, then install/build here. Runtime chat **regenerate**
 is a React chrome action; offline miss/exchange dumps still recalibrate via
-`feedback` / `exchanges` commands here.
+`feedback` commands here.
 
 ## Install
 

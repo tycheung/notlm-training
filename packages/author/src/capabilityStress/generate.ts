@@ -5,7 +5,7 @@ import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
 import { normalizeUtterance } from '@notlm/core';
 import {
-  CORE_CAPABILITY_LANES,
+  CAPABILITY_LANES,
   LANE_EXPECT,
   laneGeneratePrePrompt,
   type CapabilityLane,
@@ -114,7 +114,7 @@ export async function generateFullSuite(input: {
   lanes?: CapabilityLane[];
   onProgress?: (msg: string) => void;
 }): Promise<StressCase[]> {
-  const lanes = input.lanes || [...CORE_CAPABILITY_LANES];
+  const lanes = input.lanes || [...CAPABILITY_LANES];
   const out: StressCase[] = [];
   for (const lane of lanes) {
     input.onProgress?.(`generate lane=${lane} n=${input.perLane}`);

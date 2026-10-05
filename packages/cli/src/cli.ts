@@ -13,7 +13,7 @@ import {
 } from '@notlm-training/recalibrate';
 import { takeFlag, resolveDirAfterFromFlag } from './cliFlags.js';
 
-export { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
+export { takeFlag } from './cliFlags.js';
 
 export function usage(): void {
   console.log(`Usage (training modes):
@@ -100,7 +100,7 @@ export async function cmdDraft(args: string[]): Promise<void> {
   const exchanges = loadExchangesFromRaw(readFileSync(fromPath, 'utf8'));
   const outDir = writeExchangeDraft(home, exchanges);
   console.log(
-    `Exchange draft → ${outDir} (${exchanges.length} records) — next: exchanges fold, review, set meta.checked=true, pack accept, then notlmCLI intents check`
+    `Exchange draft → ${outDir} (${exchanges.length} records) — next: feedback fold, review, set meta.checked=true, pack accept, then notlmCLI intents check`
   );
 }
 

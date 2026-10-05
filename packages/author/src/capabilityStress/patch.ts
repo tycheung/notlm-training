@@ -1,7 +1,7 @@
 /**
  * Apply pack patches from hard-fails (LLM proposal or deterministic fixture fold).
  */
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
@@ -254,10 +254,3 @@ export function writeAutoReport(outDir: string, report: unknown): void {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
-
-export function readJsonIfExists<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
-
-export { dirname, join };
