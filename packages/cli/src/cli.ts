@@ -22,15 +22,10 @@ export function takeFlag(args: string[], name: string): string | undefined {
 
 export function usage(): void {
   console.log(`Usage (training modes):
-  notlm-training auto [dir] [--pass-rate=0.99] [--confidence=0.99] [--window=N]
-                        [--max-cpu=0.8] [--max-ram=0.8] [--workers=N] [--unlimited]
-                        [--fixture] [--resume]
-  notlm-training auto pause|resume|stop [dir]
-  notlm-training auto ranker [dir]   # explicit ranker retrain (also auto after tune)
-
-  notlm-training sharpen [dir] [--per-lane=5000] [--pass-rate=0.999] [--max-rounds=20]
-                           [--lanes=faq,goto,…] [--fixture] [--no-write]
+  notlm-training auto [dir] [--per-lane=5000] [--pass-rate=0.999] [--max-rounds=20]
+                        [--lanes=faq,goto,…] [--fixture] [--no-write]
     # System One: LLM preset pre-prompts → N×13 lanes → score → patch pack → iterate
+  notlm-training auto ranker [dir]   # explicit pack/ranker.json retrain
 
   notlm-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
   notlm-training feedback conversations pull|analyze …
@@ -41,7 +36,7 @@ Authoring (not training modes):
   notlm-training extract host <hostAppRoot>   # workshop → host .notlm/pack (deploy SoT)
   notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
 
-Legacy aliases (deprecated): train auto, exchanges *, conversations *, misses *, ranker train
+Legacy aliases (deprecated): sharpen, train auto, exchanges *, conversations *, misses *, ranker train
 
 Pack quality gates stay on operating notlmCLI:
   notlmCLI validate | intents check | ranker check
@@ -177,15 +172,16 @@ export async function runCli(argv: string[]): Promise<void> {
   const rest = argv.slice(2);
   try {
     if (cmd === 'auto') {
-      const { cmdAuto, cmdAutoPause, cmdAutoResume, cmdAutoStop, cmdAutoRanker } =
-        await import('./cmdAuto.js');
+      const { cmdAuto, cmdAutoRanker } = await import('./cmdAuto.js');
       if (!sub || sub.startsWith('--') || /^\d/.test(sub) || sub.includes('/') || sub.includes('\\')) {
         await cmdAuto(argv.slice(1));
-      } else if (sub === 'pause') await cmdAutoPause(rest);
-      else if (sub === 'resume') await cmdAutoResume(rest);
-      else if (sub === 'stop') await cmdAutoStop(rest);
-      else if (sub === 'ranker') await cmdAutoRanker(rest);
-      else await cmdAuto(argv.slice(1));
+      } else if (sub === 'ranker') await cmdAutoRanker(rest);
+      else if (sub === 'pause' || sub === 'resume' || sub === 'stop') {
+        console.error(
+          `Removed: \`auto ${sub}\` belonged to the old growth loop. Use \`auto --max-rounds=N\` instead.`
+        );
+        process.exitCode = 1;
+      } else await cmdAuto(argv.slice(1));
       return;
     }
     if (cmd === 'feedback') {
@@ -200,12 +196,16 @@ export async function runCli(argv: string[]): Promise<void> {
     }
     // Legacy aliases → new modes
     if (cmd === 'train' && (sub === 'auto' || sub === 'pause' || sub === 'resume' || sub === 'stop')) {
-      console.warn('[deprecated] use `notlm-training auto` instead of `train auto`');
-      const { cmdAuto, cmdAutoPause, cmdAutoResume, cmdAutoStop } = await import('./cmdAuto.js');
-      if (sub === 'auto') await cmdAuto(rest);
-      else if (sub === 'pause') await cmdAutoPause(rest);
-      else if (sub === 'resume') await cmdAutoResume(rest);
-      else await cmdAutoStop(rest);
+      if (sub === 'auto') {
+        console.warn('[deprecated] use `notlm-training auto` instead of `train auto`');
+        const { cmdAuto } = await import('./cmdAuto.js');
+        await cmdAuto(rest);
+      } else {
+        console.error(
+          `Removed: \`train ${sub}\` belonged to the old growth loop. Use \`notlm-training auto --max-rounds=N\` instead.`
+        );
+        process.exitCode = 1;
+      }
       return;
     }
     if (cmd === 'exchanges' && sub === 'pull') {

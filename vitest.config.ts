@@ -27,14 +27,11 @@ export default defineConfig({
         'packages/author/src/draftTalk.ts',
         'packages/author/src/parseModelJson.ts',
         'packages/author/src/index.ts',
-        'packages/author/src/trainAuto/loop.ts',
-        'packages/author/src/trainAuto/generate.ts',
         // Sharpen LLM generate path — fixture morph + loop covered in unit tests.
         'packages/author/src/capabilityStress/generate.ts',
         // Type-only modules (no runtime statements under v8).
         'packages/laya-train/src/types.ts',
         'packages/author/src/saturation/types.ts',
-        'packages/author/src/trainAuto/types.ts',
       ],
       thresholds: {
         lines: 85,

@@ -31,12 +31,7 @@ import {
   cmdMissesExport,
   cmdMissesPull,
 } from './cmdMisses.js';
-import {
-  cmdTrainAuto,
-  cmdTrainPause,
-  cmdTrainResume,
-  cmdTrainStop,
-} from './cmdTrainAuto.js';
+import { cmdAuto } from './cmdAuto.js';
 
 const FAT_TOP = new Set([
   'inventory',
@@ -156,11 +151,14 @@ export async function runFatCli(argv: string[]): Promise<void> {
       else throw new Error('Usage: misses export|pull|draft-aliases …');
       break;
     case 'train':
-      if (sub === 'auto') await cmdTrainAuto(rest);
-      else if (sub === 'pause') await cmdTrainPause(rest);
-      else if (sub === 'resume') await cmdTrainResume(rest);
-      else if (sub === 'stop') await cmdTrainStop(rest);
-      else throw new Error('Usage: train auto|pause|resume|stop …');
+      if (sub === 'auto') {
+        console.warn('[deprecated] use `notlm-training auto` instead of `train auto`');
+        await cmdAuto(rest);
+      } else if (sub === 'pause' || sub === 'resume' || sub === 'stop') {
+        throw new Error(
+          `Removed: \`train ${sub}\` belonged to the old growth loop. Use \`notlm-training auto --max-rounds=N\` instead.`
+        );
+      } else throw new Error('Usage: train auto … (pause|resume|stop removed)');
       break;
     default:
       throw new Error(`Not a fat command: ${cmd}`);

@@ -1,15 +1,39 @@
 /**
- * Product training mode #1: `notlm-training auto`
- * Unattended growth: generate → tune → eval → auto ranker retrain.
- * Legacy alias: `train auto`.
+ * Product training mode: `notlm-training auto`
+ * System One lane stress — LLM (or fixture morph) generates N×13 lane prompts,
+ * scores against pack, patches language JSON, iterates to hardFails≈0 / 99.9%.
+ * Subcommand: `auto ranker` for explicit pack/ranker.json retrain.
+ * Legacy alias: `train auto`, `sharpen`.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FlowStepDef } from '@notlm/core';
-import { e2eScenariosFromFlow, glossaryStubsFromControls } from '@notlm/author';
-import { cmdTrainAuto, cmdTrainPause, cmdTrainResume, cmdTrainStop } from './cmdTrainAuto.js';
+import { createProviderFromEnv } from '@notlm/llm';
+import {
+  e2eScenariosFromFlow,
+  glossaryStubsFromControls,
+  loadPackJsonFromFolder,
+  resolvePackFolder,
+  resolveSharpenConfig,
+  runSharpenLoop,
+  CAPABILITY_LANES,
+  type CapabilityLane,
+} from '@notlm/author';
 import { cmdRankerTrain } from './cmdRanker.js';
-import { resolveNotlmHome, pathExists, loadPackFolderJson } from './notlmHome.js';
+import {
+  resolveNotlmHome,
+  pathExists,
+  loadPackFolderJson,
+  ensureDir,
+} from './notlmHome.js';
+
+function takeFlag(args: string[], name: string): string | undefined {
+  const eq = args.find((a) => a.startsWith(`${name}=`));
+  if (eq) return eq.slice(name.length + 1);
+  const idx = args.findIndex((a) => a === name);
+  if (idx >= 0) return args[idx + 1];
+  return undefined;
+}
 
 function hasFlag(args: string[], name: string): boolean {
   return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
@@ -49,7 +73,7 @@ function seedAuthoringArtifacts(home: string): void {
 
 export async function cmdAuto(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home}`);
     process.exitCode = 1;
@@ -58,31 +82,94 @@ export async function cmdAuto(args: string[]): Promise<void> {
 
   seedAuthoringArtifacts(home);
 
-  if (hasFlag(args, '--unlimited')) {
-    const filtered = args.filter(
-      (a) => a !== '--unlimited' && !a.startsWith('--max-iterations')
-    );
-    filtered.push('--max-iterations=1000000');
-    console.log('auto → unlimited mode (stop via `notlm-training auto stop`)');
-    await cmdTrainAuto(filtered);
+  const packDir = resolvePackFolder(
+    pathExists(join(home, 'pack', 'manifest.json')) ? home : projectRoot
+  );
+  if (!pathExists(join(packDir, 'manifest.json'))) {
+    console.error(`Missing pack manifest under ${packDir}`);
+    process.exitCode = 1;
     return;
   }
-  await cmdTrainAuto(args);
+
+  const fixture = hasFlag(args, '--fixture');
+  const writePack = !hasFlag(args, '--no-write');
+  const perLane = Number(takeFlag(args, '--per-lane') ?? (fixture ? 5 : 5000));
+  const passRate = Number(takeFlag(args, '--pass-rate') ?? 0.999);
+  const maxRounds = Number(takeFlag(args, '--max-rounds') ?? 20);
+  const lanesFlag = takeFlag(args, '--lanes');
+  const lanes = lanesFlag
+    ? (lanesFlag.split(',').map((s) => s.trim()).filter(Boolean) as CapabilityLane[])
+    : undefined;
+  if (lanes) {
+    for (const l of lanes) {
+      if (!(CAPABILITY_LANES as readonly string[]).includes(l)) {
+        console.error(`Unknown lane: ${l}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
+  }
+
+  const reportDir = join(home, 'train-auto');
+  ensureDir(reportDir);
+
+  const pack = loadPackJsonFromFolder(packDir);
+  let provider = null;
+  if (!fixture) {
+    try {
+      provider = createProviderFromEnv();
+    } catch (err) {
+      console.error(
+        `LLM provider required (or pass --fixture): ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  const config = resolveSharpenConfig({
+    perLane,
+    passRate,
+    maxRounds,
+    fixture,
+    writePack,
+    lanes,
+  });
+
+  console.log(
+    `auto pack=${packDir} perLane=${config.perLane} passRate=${config.passRate} fixture=${fixture} lanes=${(lanes || CAPABILITY_LANES).join(',')}`
+  );
+
+  const report = await runSharpenLoop({
+    pack,
+    packDir,
+    reportDir,
+    provider,
+    config,
+    onLog: (msg) => console.log(msg),
+  });
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: report.ok,
+        stopReason: report.stopReason,
+        rounds: report.rounds,
+        passRate: report.final.passRate,
+        hardFails: report.final.hardFails,
+        total: report.final.total,
+        report: join(reportDir, 'report.json'),
+      },
+      null,
+      2
+    )
+  );
+  if (!report.ok) process.exitCode = 1;
 }
 
-export async function cmdAutoPause(args: string[]): Promise<void> {
-  await cmdTrainPause(args);
-}
-
-export async function cmdAutoResume(args: string[]): Promise<void> {
-  await cmdTrainResume(args);
-}
-
-export async function cmdAutoStop(args: string[]): Promise<void> {
-  await cmdTrainStop(args);
-}
-
-/** Explicit ranker refresh (also runs automatically after tune in auto loop). */
+/** Explicit ranker refresh (nightly / after pack growth). */
 export async function cmdAutoRanker(args: string[]): Promise<void> {
   await cmdRankerTrain(args);
 }
