@@ -5,14 +5,8 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  NOTLM_DIRNAME,
-  resolveNotlmHome as resolveNotlmHomeCore,
-} from '@notlm/core/loadFolder';
-
-export { NOTLM_DIRNAME };
+import { dirname, join } from 'node:path';
+import { resolveNotlmHome as resolveNotlmHomeCore } from '@notlm/core/loadFolder';
 
 export type NotlmHome = {
   /** Directory containing `.notlm` (or that is the home itself). */
@@ -50,13 +44,6 @@ export function draftsDir(home: string): string {
   return join(home, 'drafts');
 }
 
-/** Absolute path to operating notlm `packs/_template` (sibling checkout). */
-export function templateRoot(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  // dist/ or src/ → packages/cli → notlm-training → repo root → notlm/packs/_template
-  return resolve(here, '../../../../notlm/packs/_template');
-}
-
 export const PACK_PIECES = [
   'manifest.json',
   'flow.json',
@@ -90,5 +77,3 @@ export function copyTemplateFile(src: string, dest: string): void {
   ensureDir(dirname(dest));
   copyFileSync(src, dest);
 }
-
-export { resolve, existsSync };

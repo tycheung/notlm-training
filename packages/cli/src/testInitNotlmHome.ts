@@ -1,7 +1,8 @@
 /**
  * Test-only `.notlm` scaffold — production init lives in notlmCLI.
  */
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ControlInventory } from '@notlm-training/mapper';
 import {
   PACK_PIECES,
@@ -12,9 +13,15 @@ import {
   pathExists,
   readJsonFile,
   resolveNotlmHome,
-  templateRoot,
   writeJsonFile,
 } from './notlmHome.js';
+
+/** Absolute path to operating notlm `packs/_template` (sibling checkout). */
+function templateRoot(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  // dist/ or src/ → packages/cli → notlm-training → repo root → notlm/packs/_template
+  return resolve(here, '../../../../notlm/packs/_template');
+}
 
 export async function initNotlmHomeForTests(dir?: string): Promise<void> {
   const { home } = resolveNotlmHome(dir);

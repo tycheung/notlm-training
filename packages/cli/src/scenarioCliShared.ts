@@ -259,12 +259,8 @@ function fixtureBatchGenerator(
 }
 
 export {
-  FIXTURE_SEED,
-  USER_ASK_FIXTURE_SEED,
   appendChecklist,
-  asIntentPack,
   bareNumbers,
-  fixtureBatchGenerator,
   hasFlag,
   installScenarioGeneratePipeline,
   loadPriorCandidates,
@@ -273,7 +269,6 @@ export {
   parseForceCount,
   positionalDir,
   requireNotlmHome,
-  resolveGenerateMode,
   resolveProductBlurb,
   saturationDir,
   stamp,

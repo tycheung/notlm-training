@@ -1,6 +1,5 @@
 export {
   CAPABILITY_LANES,
-  CORE_CAPABILITY_LANES,
   LANE_EXPECT,
   laneGeneratePrePrompt,
   lanePatchPrePrompt,

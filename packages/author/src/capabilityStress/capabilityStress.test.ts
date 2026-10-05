@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import type { PackJsonInput } from '@notlm/core';
 import type { LlmProvider } from '@notlm-training/llm';
+import { CORE_CAPABILITY_LANES } from './lanes.js';
 import {
   CAPABILITY_LANES,
-  CORE_CAPABILITY_LANES,
   applyPackPatch,
   catalogDigest,
   fixturePatchFromFails,
