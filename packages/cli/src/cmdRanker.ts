@@ -21,14 +21,7 @@ import {
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
-
-function parseFlag(args: string[], name: string): string | undefined {
-  const eq = args.find((a) => a.startsWith(`${name}=`));
-  if (eq) return eq.slice(name.length + 1);
-  const i = args.indexOf(name);
-  if (i < 0) return undefined;
-  return args[i + 1];
-}
+import { parseFlag } from './cliFlags.js';
 
 export async function cmdRankerTrain(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));

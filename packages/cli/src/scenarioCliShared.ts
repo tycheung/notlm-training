@@ -3,13 +3,14 @@ import {
   type ScenarioGenerateMode,
 } from '@notlm-training/author';
 import type { IntentParsePack } from '@notlm/core';
+import { join } from 'node:path';
 import {
   ensureDir,
-  join,
   pathExists,
   readJsonFile,
   writeJsonFile,
 } from './notlmHome.js';
+import { hasFlag, parseFlag, positionalDir } from './cliFlags.js';
 
 function saturationDir(home: string): string {
   return join(home, 'saturation');
@@ -28,43 +29,6 @@ function asIntentPack(files: Record<string, unknown>): IntentParsePack | null {
     aliases: intents.aliases ?? {},
     meta: intents.meta,
   };
-}
-
-function parseFlag(args: string[], name: string): string | undefined {
-  const eq = args.find((a) => a.startsWith(`${name}=`));
-  if (eq) return eq.slice(name.length + 1);
-  const i = args.indexOf(name);
-  if (i < 0) return undefined;
-  return args[i + 1];
-}
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
-}
-
-function positionalDir(args: string[]): string | undefined {
-  const valueFlags = new Set([
-    '--batch',
-    '--max-batches',
-    '--epsilon',
-    '--force',
-    '--hard',
-    '--blurb',
-    '--mode',
-    '--chunk',
-  ]);
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
-    if (valueFlags.has(a)) {
-      i += 1;
-      continue;
-    }
-    if (a.startsWith('--')) continue;
-    // bare numbers are option values when npm strips flag names
-    if (/^\d+$/.test(a)) continue;
-    return a;
-  }
-  return undefined;
 }
 
 /** npm often strips `--batch 5`; accept leftover bare integers as batch then maxBatches. */

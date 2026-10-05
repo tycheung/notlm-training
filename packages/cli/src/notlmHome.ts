@@ -97,4 +97,4 @@ export function copyTemplateFile(src: string, dest: string): void {
   copyFileSync(src, dest);
 }
 
-export { join, resolve, existsSync };
+export { resolve, existsSync };

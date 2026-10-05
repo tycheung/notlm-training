@@ -14,10 +14,7 @@ import {
 import { cmdRankerTrain } from './cmdRanker.js';
 import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { cmdPackAccept } from './commands.js';
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
-}
+import { hasFlag } from './cliFlags.js';
 
 /**
  * Subcommands:

@@ -24,14 +24,13 @@ export function usage(): void {
 
   notlm-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
   notlm-training feedback conversations pull|analyze …
-  # legacy: exchanges *, conversations analyze (prefer feedback *)
 
 Authoring (not training modes):
   notlm-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
   notlm-training extract host <hostAppRoot>   # workshop → host .notlm/pack (deploy SoT)
   notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
 
-Legacy aliases (deprecated): sharpen, train auto, exchanges *, conversations *, misses *, ranker train
+Legacy alias (deprecated): sharpen → auto
 
 Pack quality gates stay on operating notlmCLI:
   notlmCLI validate | intents check | ranker check
@@ -189,41 +188,7 @@ export async function runCli(argv: string[]): Promise<void> {
       await cmdSharpen(argv.slice(1));
       return;
     }
-    // Legacy aliases → new modes
-    if (cmd === 'train' && (sub === 'auto' || sub === 'pause' || sub === 'resume' || sub === 'stop')) {
-      if (sub === 'auto') {
-        console.warn('[deprecated] use `notlm-training auto` instead of `train auto`');
-        const { cmdAuto } = await import('./cmdAuto.js');
-        await cmdAuto(rest);
-      } else {
-        console.error(
-          `Removed: \`train ${sub}\` belonged to the old growth loop. Use \`notlm-training auto --max-rounds=N\` instead.`
-        );
-        process.exitCode = 1;
-      }
-      return;
-    }
-    if (cmd === 'exchanges' && sub === 'pull') {
-      console.warn('[deprecated] use `notlm-training feedback pull`');
-      await cmdPull(rest);
-    } else if (cmd === 'exchanges' && sub === 'draft') {
-      console.warn('[deprecated] use `notlm-training feedback draft`');
-      await cmdDraft(rest);
-    } else if (cmd === 'exchanges' && sub === 'fold') {
-      console.warn('[deprecated] use `notlm-training feedback fold`');
-      await cmdFold(rest);
-    } else if (cmd === 'conversations' && sub === 'pull') {
-      console.warn('[deprecated] use `notlm-training feedback conversations pull`');
-      const { cmdConversationsPull } = await import('./cmdConversations.js');
-      await cmdConversationsPull(rest);
-    } else if (cmd === 'conversations' && sub === 'analyze') {
-      console.warn('[deprecated] use `notlm-training feedback conversations analyze`');
-      const { cmdConversationsAnalyze } = await import('./cmdConversations.js');
-      await cmdConversationsAnalyze(rest);
-    } else if (cmd === 'metrics') {
-      console.warn('[deprecated] use `notlm-training feedback metrics`');
-      await cmdMetrics(argv.slice(1));
-    } else if (cmd === 'help' || cmd === '--help' || !cmd) usage();
+    if (cmd === 'help' || cmd === '--help' || !cmd) usage();
     else {
       const { isFatCommand, runFatCli } = await import('./fatDispatch.js');
       if (isFatCommand(cmd, sub)) {

@@ -6,7 +6,7 @@ import {
   cmdConversationsAnalyze,
   cmdConversationsPull,
 } from './cmdConversations.js';
-import { cmdInit } from './commands.js';
+import { initNotlmHomeForTests } from './testInitNotlmHome.js';
 import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { runCli } from './cli.js';
 
@@ -72,7 +72,7 @@ describe('cmdConversationsAnalyze', () => {
 
   it('fixture review mode writes unchecked fold draft', async () => {
     const root = mkdtempSync(join(tmpdir(), 'notlm-conv-review-'));
-    await cmdInit(root);
+    await initNotlmHomeForTests(root);
     const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
 
@@ -132,7 +132,7 @@ describe('cmdConversationsAnalyze', () => {
 
   it('fixture auto mode accepts into pack', async () => {
     const root = mkdtempSync(join(tmpdir(), 'notlm-conv-auto-'));
-    await cmdInit(root);
+    await initNotlmHomeForTests(root);
     const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
 
@@ -164,7 +164,7 @@ describe('runCli conversations routing', () => {
   it('mentions conversations in help', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await runCli(['help']);
-    expect(log.mock.calls.some((c) => String(c[0]).includes('conversations analyze'))).toBe(
+    expect(log.mock.calls.some((c) => String(c[0]).includes('feedback conversations'))).toBe(
       true
     );
   });

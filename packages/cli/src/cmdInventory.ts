@@ -8,9 +8,9 @@ import {
   type ControlInventory,
   type ControlStepMap,
 } from '@notlm-training/mapper';
+import { join } from 'node:path';
 import {
   draftsDir,
-  join,
   pathExists,
   readJsonFile,
   resolveNotlmHome,

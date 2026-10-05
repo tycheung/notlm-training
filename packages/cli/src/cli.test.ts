@@ -48,7 +48,7 @@ describe('usage / runCli routing', () => {
 
   it('surfaces thrown errors as exitCode 1', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    await runCli(['exchanges', 'pull', '--url', 'https://example.invalid']);
+    await runCli(['feedback', 'pull', '--url', 'https://example.invalid']);
     // fetch will fail (network or our stub) — ensure catch path works via stub:
     vi.stubGlobal(
       'fetch',
@@ -57,7 +57,7 @@ describe('usage / runCli routing', () => {
       })
     );
     process.exitCode = undefined;
-    await runCli(['exchanges', 'pull', '--url', 'https://x']);
+    await runCli(['feedback', 'pull', '--url', 'https://x']);
     expect(process.exitCode).toBe(1);
     expect(err.mock.calls.at(-1)?.[0]).toBe('boom');
   });

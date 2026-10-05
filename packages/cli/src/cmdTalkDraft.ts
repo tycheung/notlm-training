@@ -1,21 +1,18 @@
+import { join } from 'node:path';
 import { draftConversationalCopy } from '@notlm-training/author';
 import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   draftsDir,
   ensureDir,
-  join,
   loadPackFolderJson,
   pathExists,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
+import { hasFlag } from './cliFlags.js';
 
 function stamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
-}
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
 }
 
 /**

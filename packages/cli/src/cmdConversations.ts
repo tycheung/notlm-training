@@ -13,31 +13,9 @@ import {
 } from '@notlm-training/recalibrate';
 import { cmdPackAccept } from './cmdPackIntents.js';
 import { loadPackFolderJson, resolveNotlmHome } from './notlmHome.js';
+import { positionalDir, takeFlag } from './cliFlags.js';
 
-function takeFlag(args: string[], name: string): string | undefined {
-  const eq = args.findIndex((a) => a.startsWith(`${name}=`));
-  if (eq >= 0) return args[eq]!.slice(name.length + 1);
-  const idx = args.findIndex((a) => a === name);
-  if (idx >= 0) return args[idx + 1];
-  return undefined;
-}
-
-function positionalDir(args: string[], skipFlags: string[]): string {
-  const skip = new Set<string>();
-  for (let i = 0; i < args.length; i += 1) {
-    const a = args[i]!;
-    if (skipFlags.includes(a)) {
-      skip.add(a);
-      if (args[i + 1] && !args[i + 1]!.startsWith('-')) skip.add(args[i + 1]!);
-    } else if (skipFlags.some((f) => a.startsWith(`${f}=`))) {
-      skip.add(a);
-    } else if (a === '--fixture' || a === '--mode' || a.startsWith('--mode=')) {
-      skip.add(a);
-      if (a === '--mode' && args[i + 1]) skip.add(args[i + 1]!);
-    }
-  }
-  return args.find((a) => !a.startsWith('-') && !skip.has(a)) ?? process.cwd();
-}
+const CONVERSATION_DIR_FLAGS = new Set(['--from', '--mode']);
 
 export async function cmdConversationsPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
@@ -100,7 +78,7 @@ export async function cmdConversationsAnalyze(
   const fixture =
     args.includes('--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
 
-  const dir = positionalDir(args, ['--from', '--mode']);
+  const dir = positionalDir(args, CONVERSATION_DIR_FLAGS) ?? process.cwd();
   const { home } = resolveNotlmHome(dir);
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });

@@ -3,32 +3,7 @@ import { join } from 'node:path';
 import { normalizeMissRecordList, parseMissRecords } from '@notlm/core';
 import { validateMissRecordList } from '@notlm/schema';
 import { draftsDir, pathExists, resolveNotlmHome } from './notlmHome.js';
-
-function takeFlag(args: string[], name: string): string | undefined {
-  const eq = args.findIndex((a) => a.startsWith(`${name}=`));
-  if (eq >= 0) return args[eq]!.slice(name.length + 1);
-  const idx = args.findIndex((a) => a === name);
-  if (idx >= 0) return args[idx + 1];
-  return undefined;
-}
-
-function positionalDir(args: string[]): string | undefined {
-  const skip = new Set<string>();
-  for (let i = 0; i < args.length; i += 1) {
-    const a = args[i]!;
-    if (a === '--from' || a === '--out' || a === '--url') {
-      skip.add(a);
-      if (args[i + 1]) skip.add(args[i + 1]!);
-    } else if (
-      a.startsWith('--from=') ||
-      a.startsWith('--out=') ||
-      a.startsWith('--url=')
-    ) {
-      skip.add(a);
-    }
-  }
-  return args.find((a) => !a.startsWith('-') && !skip.has(a));
-}
+import { FEEDBACK_PATH_FLAGS, positionalDir, takeFlag } from './cliFlags.js';
 
 function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: string): void {
   const payload = `${JSON.stringify(records, null, 2)}\n`;
@@ -90,7 +65,7 @@ export async function cmdMissesPull(args: string[]): Promise<void> {
  * Group unique miss texts into a draft folder for human accept into intents/corpus.
  */
 export async function cmdMissesDraftAliases(args: string[]): Promise<void> {
-  const dir = positionalDir(args);
+  const dir = positionalDir(args, FEEDBACK_PATH_FLAGS);
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(

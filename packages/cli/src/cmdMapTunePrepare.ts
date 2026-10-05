@@ -6,10 +6,7 @@ import {
 import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { runIntentsTuneIfPossible } from './cmdScenariosAsk.js';
 import { pathExists, resolveNotlmHome } from './notlmHome.js';
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
-}
+import { hasFlag, positionalDirFirst } from './cliFlags.js';
 
 function stripFlags(args: string[], names: string[]): string[] {
   const drop = new Set(names);
@@ -22,16 +19,8 @@ function stripFlags(args: string[], names: string[]): string[] {
   return out;
 }
 
-function positionalDir(args: string[]): string | undefined {
-  for (const a of args) {
-    if (a.startsWith('-')) continue;
-    return a;
-  }
-  return undefined;
-}
-
 export async function cmdMap(args: string[]): Promise<void> {
-  const dir = positionalDir(args);
+  const dir = positionalDirFirst(args);
   const { home } = resolveNotlmHome(dir);
   const withLlm = hasFlag(args, '--llm');
 
@@ -61,7 +50,7 @@ export async function cmdMap(args: string[]): Promise<void> {
  * `--force=N` hard-adds exactly N candidates (ignore similarity).
  */
 export async function cmdTune(args: string[]): Promise<void> {
-  const dir = positionalDir(args);
+  const dir = positionalDirFirst(args);
   const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);

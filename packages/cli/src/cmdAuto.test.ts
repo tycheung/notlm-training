@@ -2,7 +2,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cmdInit } from './commands.js';
+import { initNotlmHomeForTests } from './testInitNotlmHome.js';
 import { cmdAuto } from './cmdAuto.js';
 import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { isFatCommand } from './fatDispatch.js';
@@ -33,7 +33,7 @@ describe('auto CLI (lane stress)', () => {
   it('fixture run writes train-auto report and seeds authoring artifacts', async () => {
     const root = mkdtempSync(join(tmpdir(), 'notlm-auto-'));
     temps.push(root);
-    await cmdInit(root);
+    await initNotlmHomeForTests(root);
     const { home } = resolveNotlmHome(root);
     cpSync(fixturePack, join(home, 'pack'), { recursive: true });
     if (pathExists(join(fixtureHome, 'scenarios.json'))) {

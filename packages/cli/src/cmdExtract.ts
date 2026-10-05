@@ -1,29 +1,16 @@
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import {
   mergeGuideIdScan,
   runStructuredExtract,
   type ControlInventory,
 } from '@notlm-training/mapper';
 import {
-  join,
   pathExists,
   readJsonFile,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
-
-function positionalDir(args: string[], flagNames: Set<string>): string | undefined {
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
-    if (flagNames.has(a)) {
-      i += 1;
-      continue;
-    }
-    if (a.startsWith('-')) continue;
-    return a;
-  }
-  return undefined;
-}
+import { positionalDir } from './cliFlags.js';
 
 export async function cmdExtractStatic(args: string[]): Promise<void> {
   const flagNames = new Set(['--src']);
@@ -46,7 +33,7 @@ export async function cmdExtractStatic(args: string[]): Promise<void> {
   }
   const dir =
     srcIdx >= 0
-      ? positionalDir(args, flagNames)
+      ? positionalDir(args, new Set(['--src']))
       : positionals.length >= 2
         ? positionals[positionals.length - 1]
         : undefined;

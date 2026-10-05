@@ -12,22 +12,7 @@ import {
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
-
-function parseFlag(args: string[], name: string): string | undefined {
-  const eq = args.find((a) => a.startsWith(`${name}=`));
-  if (eq) return eq.slice(name.length + 1);
-  const i = args.indexOf(name);
-  if (i < 0) return undefined;
-  return args[i + 1];
-}
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name);
-}
-
-function positionalDir(args: string[]): string | undefined {
-  return args.find((a) => !a.startsWith('-'));
-}
+import { hasFlag, parseFlag, positionalDirFirst } from './cliFlags.js';
 
 function trainingRepoRoot(): string {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -40,7 +25,7 @@ function parseMode(args: string[]): LayaConvertMode {
 }
 
 export async function cmdLayaConvert(args: string[]): Promise<void> {
-  const dir = positionalDir(args) ?? process.cwd();
+  const dir = positionalDirFirst(args) ?? process.cwd();
   const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
@@ -57,7 +42,7 @@ export async function cmdLayaConvert(args: string[]): Promise<void> {
 }
 
 export async function cmdLayaTrain(args: string[]): Promise<void> {
-  const dir = positionalDir(args) ?? process.cwd();
+  const dir = positionalDirFirst(args) ?? process.cwd();
   const { home } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);

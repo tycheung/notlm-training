@@ -7,10 +7,10 @@ import {
 } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
 import { createProviderFromEnv } from '@notlm-training/llm';
+import { join } from 'node:path';
 import {
   draftsDir,
   ensureDir,
-  join,
   loadPackFolderJson,
   pathExists,
   readJsonFile,
