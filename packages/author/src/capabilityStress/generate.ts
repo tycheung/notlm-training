@@ -1,7 +1,7 @@
 /**
  * Generate distinct lane utterances via LLM preset pre-prompts, with morph fallback.
  */
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
 import { normalizeUtterance } from '@notlm/core';
 import {

@@ -4,9 +4,9 @@ import {
   createOpenAiCompatProvider,
   createProvider,
   type LlmProvider,
-} from '@notlm/llm';
+} from '@notlm-training/llm';
 
-describe('providers (via @notlm/llm)', () => {
+describe('providers (via @notlm-training/llm)', () => {
   it('ollama posts to /api/chat', async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: true,

@@ -3,7 +3,7 @@ import {
   mergeGuideIdScan,
   runStructuredExtract,
   type ControlInventory,
-} from '@notlm/mapper';
+} from '@notlm-training/mapper';
 import {
   join,
   pathExists,

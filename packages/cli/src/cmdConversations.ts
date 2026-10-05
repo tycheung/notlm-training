@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { analyzeConversations } from '@notlm/author';
-import { createProviderFromEnv } from '@notlm/llm';
+import { analyzeConversations } from '@notlm-training/author';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   validateConversationRecordList,
   validateConversationTurnList,
@@ -79,14 +79,20 @@ export async function cmdConversationsPull(args: string[]): Promise<void> {
   }
 }
 
-export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
+export type ConversationsAnalyzeResult =
+  | { ok: false }
+  | { ok: true; accepted: boolean; draftId: string; dir: string };
+
+export async function cmdConversationsAnalyze(
+  args: string[]
+): Promise<ConversationsAnalyzeResult> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
       'Usage: notlm-training conversations analyze --from <conv.json> [dir] [--mode=review|auto] [--fixture]'
     );
     process.exitCode = 1;
-    return;
+    return { ok: false };
   }
 
   const modeRaw = takeFlag(args, '--mode') ?? 'review';
@@ -105,7 +111,7 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
   if (!conversations.length) {
     console.error('No conversations found in dump');
     process.exitCode = 1;
-    return;
+    return { ok: false };
   }
 
   const files = loadPackFolderJson(home);
@@ -148,7 +154,7 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
     );
     console.error(`Analyze failed; see ${errDir}/errors.json`);
     process.exitCode = 1;
-    return;
+    return { ok: false };
   }
 
   const { proposalDir, foldDir, draftId } = writeConversationFoldDraft(
@@ -171,10 +177,12 @@ export async function cmdConversationsAnalyze(args: string[]): Promise<void> {
     console.log(
       'Auto-accepted. Next: run `notlmCLI intents check` on the project to gate scenarios.'
     );
-  } else {
-    console.log(
-      'Review fold draft, set meta.checked=true, then: notlm-training pack accept ' +
-        `${draftId} && notlmCLI intents check`
-    );
+    return { ok: true, accepted: true, draftId, dir };
   }
+
+  console.log(
+    'Review fold draft, set meta.checked=true, then: notlm-training pack accept ' +
+      `${draftId} && notlmCLI intents check`
+  );
+  return { ok: true, accepted: false, draftId, dir };
 }

@@ -1,24 +1,24 @@
 /**
  * Product training mode: `notlm-training auto`
  * System One lane stress — LLM (or fixture morph) generates N×13 lane prompts,
- * scores against pack, patches language JSON, iterates to hardFails≈0 / 99.9%.
+ * scores against pack, patches language JSON, iterates to hardFails=0 / 99.9%.
  * Subcommand: `auto ranker` for explicit pack/ranker.json retrain.
  * Legacy alias: `train auto`, `sharpen`.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { FlowStepDef } from '@notlm/core';
-import { createProviderFromEnv } from '@notlm/llm';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   e2eScenariosFromFlow,
   glossaryStubsFromControls,
   loadPackJsonFromFolder,
   resolvePackFolder,
-  resolveSharpenConfig,
-  runSharpenLoop,
+  resolveAutoConfig,
+  runAutoLoop,
   CAPABILITY_LANES,
   type CapabilityLane,
-} from '@notlm/author';
+} from '@notlm-training/author';
 import { cmdRankerTrain } from './cmdRanker.js';
 import {
   resolveNotlmHome,
@@ -26,27 +26,7 @@ import {
   loadPackFolderJson,
   ensureDir,
 } from './notlmHome.js';
-
-function takeFlag(args: string[], name: string): string | undefined {
-  const eq = args.find((a) => a.startsWith(`${name}=`));
-  if (eq) return eq.slice(name.length + 1);
-  const idx = args.findIndex((a) => a === name);
-  if (idx >= 0) return args[idx + 1];
-  return undefined;
-}
-
-function hasFlag(args: string[], name: string): boolean {
-  return args.includes(name) || args.some((a) => a.startsWith(`${name}=`));
-}
-
-function positionalDir(args: string[]): string | undefined {
-  for (const a of args) {
-    if (a.startsWith('--')) continue;
-    if (/^\d+(\.\d+)?$/.test(a)) continue;
-    return a;
-  }
-  return undefined;
-}
+import { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
 
 /** Seed E2E + glossary drafts once per home (idempotent). */
 function seedAuthoringArtifacts(home: string): void {
@@ -129,7 +109,7 @@ export async function cmdAuto(args: string[]): Promise<void> {
     }
   }
 
-  const config = resolveSharpenConfig({
+  const config = resolveAutoConfig({
     perLane,
     passRate,
     maxRounds,
@@ -142,7 +122,7 @@ export async function cmdAuto(args: string[]): Promise<void> {
     `auto pack=${packDir} perLane=${config.perLane} passRate=${config.passRate} fixture=${fixture} lanes=${(lanes || CAPABILITY_LANES).join(',')}`
   );
 
-  const report = await runSharpenLoop({
+  const report = await runAutoLoop({
     pack,
     packDir,
     reportDir,

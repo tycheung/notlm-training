@@ -1,5 +1,5 @@
 {
-  "name": "@notlm/mapper",
+  "name": "@notlm-training/mapper",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",

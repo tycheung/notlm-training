@@ -7,7 +7,7 @@ import {
   mergeInventory,
   type ControlInventory,
   type ControlStepMap,
-} from '@notlm/mapper';
+} from '@notlm-training/mapper';
 import {
   draftsDir,
   join,

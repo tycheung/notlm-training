@@ -24,10 +24,10 @@ afterEach(() => {
 });
 
 describe('auto CLI (lane stress)', () => {
-  it('routes fat train auto; pause is still recognized as fat but errors', () => {
-    expect(isFatCommand('train', 'auto')).toBe(true);
-    expect(isFatCommand('train', 'pause')).toBe(true);
-    expect(isFatCommand('train', 'nope')).toBe(false);
+  it('train is handled by runCli, not fatDispatch', () => {
+    expect(isFatCommand('train', 'auto')).toBe(false);
+    expect(isFatCommand('ranker', 'train')).toBe(true);
+    expect(isFatCommand('scenarios', 'saturate')).toBe(true);
   });
 
   it('fixture run writes train-auto report and seeds authoring artifacts', async () => {
@@ -58,7 +58,7 @@ describe('auto CLI (lane stress)', () => {
       final: { total: number; passRate: number };
     };
     expect(report.final.total).toBeGreaterThan(0);
-    expect(['pass', 'max_rounds', 'no_failures', 'stalled']).toContain(
+    expect(['no_failures', 'max_rounds', 'stalled']).toContain(
       report.stopReason
     );
     expect(pathExists(join(home, 'e2e-scenarios.json'))).toBe(true);

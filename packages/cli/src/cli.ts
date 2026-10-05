@@ -11,14 +11,9 @@ import {
   writeExchangeDraft,
   writeFoldedPackDraft,
 } from '@notlm-training/recalibrate';
+import { takeFlag } from './cliFlags.js';
 
-export function takeFlag(args: string[], name: string): string | undefined {
-  const eq = args.findIndex((a) => a.startsWith(`${name}=`));
-  if (eq >= 0) return args[eq]!.slice(name.length + 1);
-  const idx = args.findIndex((a) => a === name);
-  if (idx >= 0) return args[idx + 1];
-  return undefined;
-}
+export { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
 
 export function usage(): void {
   console.log(`Usage (training modes):
@@ -29,7 +24,7 @@ export function usage(): void {
 
   notlm-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
   notlm-training feedback conversations pull|analyze …
-  # legacy: exchanges pull|draft|fold ; conversations analyze
+  # legacy: exchanges *, conversations analyze (prefer feedback *)
 
 Authoring (not training modes):
   notlm-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
@@ -96,7 +91,7 @@ export async function cmdPull(args: string[]): Promise<void> {
 export async function cmdDraft(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
-    console.error('Usage: notlm-training exchanges draft --from <file> [dir]');
+    console.error('Usage: notlm-training feedback draft --from <file> [dir]');
     process.exitCode = 1;
     return;
   }
@@ -124,7 +119,7 @@ export async function cmdFold(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
-      'Usage: notlm-training exchanges fold --from <exchanges-*/draft.json> [dir]'
+      'Usage: notlm-training feedback fold --from <exchanges-*/draft.json> [dir]'
     );
     process.exitCode = 1;
     return;
@@ -152,7 +147,7 @@ export async function cmdMetrics(args: string[]): Promise<void> {
   const fromPath = takeFlag(args, '--from');
   if (!fromPath) {
     console.error(
-      'Usage: notlm-training metrics --from <exchanges.json> [--misses <misses.json>]'
+      'Usage: notlm-training feedback metrics --from <exchanges.json> [--misses <misses.json>]'
     );
     process.exitCode = 1;
     return;

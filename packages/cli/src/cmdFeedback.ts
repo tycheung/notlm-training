@@ -28,7 +28,7 @@ function hasFlag(args: string[], name: string): boolean {
  *   feedback misses pull|export|draft-aliases …
  *   feedback metrics --from …
  *   feedback accept <draftId> [dir]
- *   feedback run --from <conv|exchanges> …  (analyze+fold+accept+ranker)
+ *   feedback run --from <conv.json> …  (analyze; ranker only when pack was auto-accepted)
  */
 export async function cmdFeedback(args: string[]): Promise<void> {
   const sub = args[0];
@@ -100,19 +100,34 @@ export async function cmdFeedback(args: string[]): Promise<void> {
   if (sub === 'run') {
     const from = takeFlag(rest, '--from');
     if (!from) {
-      console.error('Usage: feedback run --from <conv.json> [dir] [--mode=auto] [--branch-out]');
+      console.error(
+        'Usage: feedback run --from <conv.json> [dir] [--mode=review|auto] [--branch-out] [--fixture]'
+      );
       process.exitCode = 1;
       return;
     }
-    // Conversations analyze path (works for conversation dumps; exchanges use fold separately).
-    await cmdConversationsAnalyze(rest);
-    if (hasFlag(rest, '--branch-out')) {
-      console.log('feedback → branch-out saturate around log contexts');
-      await cmdScenariosSaturate(rest.filter((a) => a !== '--branch-out'));
+    const analyzed = await cmdConversationsAnalyze(rest);
+    if (!analyzed.ok) {
+      // analyze already set exitCode / logged errors — do not ranker or branch-out.
+      return;
     }
-    // Auto-retrain ranker after feedback run when pack may have changed.
-    const dir = rest.find((a) => !a.startsWith('-') && a !== from);
-    await cmdRankerTrain(dir ? [dir] : []);
+    if (hasFlag(rest, '--branch-out')) {
+      if (!analyzed.accepted) {
+        console.log(
+          'feedback → skip branch-out (review mode; accept the draft first)'
+        );
+      } else {
+        console.log('feedback → branch-out saturate around log contexts');
+        await cmdScenariosSaturate(rest.filter((a) => a !== '--branch-out'));
+      }
+    }
+    if (analyzed.accepted) {
+      await cmdRankerTrain(analyzed.dir ? [analyzed.dir] : []);
+    } else {
+      console.log(
+        'feedback → skip ranker (review mode; pack unchanged until accept)'
+      );
+    }
     return;
   }
 

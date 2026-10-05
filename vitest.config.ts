@@ -45,10 +45,10 @@ export default defineConfig({
       '@notlm/core': resolve(__dirname, '../notlm/packages/core/dist/index.js'),
       '@notlm/schema': resolve(__dirname, '../notlm/packages/schema/dist/index.js'),
       '@notlm/ranker': resolve(__dirname, '../notlm/packages/ranker/dist/index.js'),
-      '@notlm/llm': resolve(__dirname, 'packages/llm/src/index.ts'),
-      '@notlm/author': resolve(__dirname, 'packages/author/src/index.ts'),
-      '@notlm/mapper': resolve(__dirname, 'packages/mapper/src/index.ts'),
-      '@notlm/codegen': resolve(__dirname, 'packages/codegen/src/index.ts'),
+      '@notlm-training/llm': resolve(__dirname, 'packages/llm/src/index.ts'),
+      '@notlm-training/author': resolve(__dirname, 'packages/author/src/index.ts'),
+      '@notlm-training/mapper': resolve(__dirname, 'packages/mapper/src/index.ts'),
+      '@notlm-training/codegen': resolve(__dirname, 'packages/codegen/src/index.ts'),
       '@notlm-training/recalibrate': resolve(
         __dirname,
         'packages/recalibrate/src/index.ts'

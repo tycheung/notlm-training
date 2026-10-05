@@ -5,7 +5,7 @@ import {
   traceToFlowDraft,
   writeTraceFile,
   type ClickTrace,
-} from '@notlm/mapper';
+} from '@notlm-training/mapper';
 import {
   draftsDir,
   ensureDir,

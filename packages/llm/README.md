@@ -1,4 +1,4 @@
-# `@notlm/llm`
+# `@notlm-training/llm`
 
 Host-server and **training** chat adapters. Browser `@notlm/react` runtime does **not**
 call these providers — hosts (e.g. Victory Bowling) proxy via BYO `fallbackLlm`.
@@ -23,7 +23,7 @@ call these providers — hosts (e.g. Victory Bowling) proxy via BYO `fallbackLlm
 | Hugging Face | OpenAI-compat router | `https://router.huggingface.co` |
 
 ```ts
-import { createProviderFromEnv } from '@notlm/llm';
+import { createProviderFromEnv } from '@notlm-training/llm';
 
 const llm = createProviderFromEnv();
 const text = await llm.completeChat({

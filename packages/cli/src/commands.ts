@@ -4,8 +4,8 @@ import {
   checklistToMarkdown,
   parseJobsYamlLite,
   writeJobsFlowDraft,
-} from '@notlm/codegen';
-import type { ControlInventory, InventoriedControl } from '@notlm/mapper';
+} from '@notlm-training/codegen';
+import type { ControlInventory, InventoriedControl } from '@notlm-training/mapper';
 import { validatePackFolder } from '@notlm/schema';
 import {
   PACK_PIECES,

@@ -9,7 +9,7 @@ is the only place that documents both sides.
 |---------|------|
 | Runtime (`@notlm/core`, `@notlm/react`, schema, ranker **infer**) | sibling [`notlm`](../notlm) |
 | Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `notlm` thin `notlmCLI` |
-| Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, conversation analyze, ranker **train** + ONNX export | **this repo** |
+| Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, conversation analyze, ranker **train** + ONNX export | **this repo** (`@notlm-training/author`, `llm`, `mapper`, `codegen`, …) |
 
 **Sibling required:** root deps are `file:../notlm/packages/{core,schema,ranker}`.
 Clone beside `notlm`, build operating packages first, then install/build here.
@@ -38,7 +38,7 @@ There are **two** training interfaces. Everything else is authoring/bootstrap.
 Unattended pack growth via the VictoryBowling sharpen method: preset LLM
 **pre-prompts per lane**, generate distinct domain utterances (default
 **5000 × 13 lanes**), score with the local System One scorer, patch pack
-language JSON, loop until `hardFails=0` or pass-rate ≥ **0.999**.
+language JSON, loop until `hardFails=0` **and** pass-rate ≥ **0.999**.
 
 Also seeds `e2e-scenarios.json` and `drafts/glossary-from-controls.json` when
 missing. Report: `.notlm/train-auto/report.json`.
@@ -119,7 +119,7 @@ npx notlm-training feedback accept <draftId> ../react-frontend
 
 ## Providers
 
-Set `NOTLM_LLM_*` (see `packages/llm/README.md`). Import from `@notlm/llm` directly.
+Set `NOTLM_LLM_*` (see `packages/llm/README.md`). Import from `@notlm-training/llm` directly.
 
 Soft-label / auto label pool: `NOTLM_LABELER=llm|laya|mock` (`mock` is deterministic, no GPU).
 

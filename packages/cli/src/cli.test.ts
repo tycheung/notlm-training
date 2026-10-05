@@ -33,7 +33,7 @@ describe('usage / runCli routing', () => {
     await runCli(['help']);
     await runCli(['--help']);
     await runCli([]);
-    expect(log.mock.calls.some((c) => String(c[0]).includes('exchanges pull'))).toBe(
+    expect(log.mock.calls.some((c) => String(c[0]).includes('feedback pull'))).toBe(
       true
     );
   });

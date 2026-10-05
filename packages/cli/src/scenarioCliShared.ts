@@ -1,7 +1,7 @@
 import {
   type ScenarioCandidate,
   type ScenarioGenerateMode,
-} from '@notlm/author';
+} from '@notlm-training/author';
 import type { IntentParsePack } from '@notlm/core';
 import {
   ensureDir,

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
-import { authorPackDraft, tuneIntents } from '@notlm/author';
+import { authorPackDraft, tuneIntents } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
-import { createProviderFromEnv } from '@notlm/llm';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   PACK_PIECES,
   copyTemplateFile,

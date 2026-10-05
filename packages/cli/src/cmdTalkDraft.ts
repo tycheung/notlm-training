@@ -1,5 +1,5 @@
-import { draftConversationalCopy } from '@notlm/author';
-import { createProviderFromEnv } from '@notlm/llm';
+import { draftConversationalCopy } from '@notlm-training/author';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   draftsDir,
   ensureDir,

@@ -1,5 +1,5 @@
 import type { IntentParsePack } from '@notlm/core';
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import { generateScenarioCandidates } from './generateCandidates.js';
 import {
   buildNoveltyReport,

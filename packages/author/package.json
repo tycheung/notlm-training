@@ -1,5 +1,5 @@
 {
-  "name": "@notlm/author",
+  "name": "@notlm-training/author",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,7 +13,7 @@
   "files": ["dist"],
   "dependencies": {
     "@notlm/core": "*",
-    "@notlm/llm": "*",
+    "@notlm-training/llm": "*",
     "@notlm/schema": "*"
   },
   "scripts": {

@@ -14,7 +14,7 @@ type PlaywrightChromium = {
 /**
  * Optional live crawl via Playwright.
  *
- * Playwright is **not** a hard dependency of `@notlm/mapper`.
+ * Playwright is **not** a hard dependency of `@notlm-training/mapper`.
  * Install it in the host/tooling workspace when you need URL crawls:
  *
  *   npm i -D playwright

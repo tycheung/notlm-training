@@ -9,9 +9,9 @@ import {
   splitContextBatchGenerator,
   buildContextTreePlan,
   type ScenarioCandidate,
-} from '@notlm/author';
+} from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
-import { createProviderFromEnv } from '@notlm/llm';
+import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   draftsDir,
   ensureDir,

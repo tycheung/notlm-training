@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import type { PackJsonInput } from '@notlm/core';
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import {
   CAPABILITY_LANES,
   applyPackPatch,

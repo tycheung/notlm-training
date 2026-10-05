@@ -3,7 +3,7 @@
  */
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import type { PackJsonInput } from '@notlm/core';
 import { extractJsonText, parseModelJson } from '../parseModelJson.js';
 import { lanePatchPrePrompt } from './lanes.js';
@@ -250,13 +250,13 @@ export function writePackFolder(packDir: string, pack: PackJsonInput): void {
   if (pack.normalize) write('normalize.json', pack.normalize);
 }
 
-export function writeSharpenReport(
-  outDir: string,
-  report: unknown
-): void {
+export function writeAutoReport(outDir: string, report: unknown): void {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
+
+/** @deprecated Use writeAutoReport */
+export const writeSharpenReport = writeAutoReport;
 
 export function readJsonIfExists<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;

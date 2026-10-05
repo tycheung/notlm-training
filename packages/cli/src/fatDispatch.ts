@@ -31,7 +31,6 @@ import {
   cmdMissesExport,
   cmdMissesPull,
 } from './cmdMisses.js';
-import { cmdAuto } from './cmdAuto.js';
 
 const FAT_TOP = new Set([
   'inventory',
@@ -48,7 +47,6 @@ const FAT_TOP = new Set([
   'prepare',
   'talk',
   'misses',
-  'train',
   'laya',
 ]);
 
@@ -56,16 +54,10 @@ export function isFatCommand(cmd: string | undefined, sub?: string): boolean {
   if (!cmd) return false;
   if (FAT_TOP.has(cmd)) {
     if (cmd === 'pack') return sub === 'author' || sub === 'accept';
-    if (cmd === 'train') {
-      return (
-        sub === 'auto' || sub === 'pause' || sub === 'resume' || sub === 'stop'
-      );
-    }
     return true;
   }
   if (cmd === 'intents' && sub === 'tune') return true;
   if (cmd === 'ranker' && sub === 'train') return true;
-  if (cmd === 'laya') return sub === 'convert' || sub === 'train';
   return false;
 }
 
@@ -85,7 +77,6 @@ export async function runFatCli(argv: string[]): Promise<void> {
       }
       if (sub !== 'static') throw new Error('Usage: extract static … | extract host <hostAppRoot>');
       await cmdExtractStatic(rest);
-      break;
       break;
     case 'trace':
       if (sub === 'ingest') await cmdTraceIngest(rest);
@@ -138,8 +129,12 @@ export async function runFatCli(argv: string[]): Promise<void> {
       else throw new Error('Usage: talk draft …');
       break;
     case 'ranker':
-      if (sub === 'train') await cmdRankerTrain(rest);
-      else throw new Error('Usage: ranker train … (ranker check stays on notlmCLI)');
+      if (sub === 'train') {
+        console.warn(
+          '[deprecated] prefer `notlm-training auto ranker` (ranker train still works)'
+        );
+        await cmdRankerTrain(rest);
+      } else throw new Error('Usage: ranker train … (ranker check stays on notlmCLI)');
       break;
     case 'laya':
       await cmdLaya([sub, ...rest].filter(Boolean) as string[]);
@@ -149,16 +144,6 @@ export async function runFatCli(argv: string[]): Promise<void> {
       else if (sub === 'pull') await cmdMissesPull(rest);
       else if (sub === 'draft-aliases') await cmdMissesDraftAliases(rest);
       else throw new Error('Usage: misses export|pull|draft-aliases …');
-      break;
-    case 'train':
-      if (sub === 'auto') {
-        console.warn('[deprecated] use `notlm-training auto` instead of `train auto`');
-        await cmdAuto(rest);
-      } else if (sub === 'pause' || sub === 'resume' || sub === 'stop') {
-        throw new Error(
-          `Removed: \`train ${sub}\` belonged to the old growth loop. Use \`notlm-training auto --max-rounds=N\` instead.`
-        );
-      } else throw new Error('Usage: train auto … (pause|resume|stop removed)');
       break;
     default:
       throw new Error(`Not a fat command: ${cmd}`);

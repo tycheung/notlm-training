@@ -1,5 +1,5 @@
 import { validatePackFolder } from '@notlm/schema';
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import { buildIntentTunePrompt } from './prompts.js';
 import { extractJsonText } from './parseModelJson.js';
 

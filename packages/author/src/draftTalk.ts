@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 import { extractJsonText, parseModelJson } from './parseModelJson.js';
 
 export type DraftTalkResult = {

@@ -104,7 +104,6 @@ export { detectClashes, clashDensity, type ClashGroup } from './detectClashes.js
 export { draftConversationalCopy } from './draftTalk.js';
 export type { DraftTalkResult } from './draftTalk.js';
 
-export { ALIAS_SOFT_CAP, FAQ_ALIAS_SOFT_CAP, PARSE_LATENCY_P95_BUDGET_MS } from './limits.js';
 export { e2eScenariosFromFlow, type E2eScenario } from './e2eScenarios.js';
 export { glossaryStubsFromControls, type GlossaryStub } from './glossaryCrawl.js';
 
@@ -127,9 +126,13 @@ export {
   proposePackPatch,
   applyPackPatch,
   writePackFolder,
+  writeAutoReport,
   writeSharpenReport,
+  DEFAULT_AUTO,
   DEFAULT_SHARPEN,
+  resolveAutoConfig,
   resolveSharpenConfig,
+  runAutoLoop,
   runSharpenLoop,
   type CapabilityLane,
   type LaneExpect,
@@ -137,6 +140,8 @@ export {
   type ScoreResult,
   type SuiteSummary,
   type PackPatch,
+  type AutoLoopConfig,
   type SharpenConfig,
+  type AutoLoopReport,
   type SharpenReport,
 } from './capabilityStress/index.js';

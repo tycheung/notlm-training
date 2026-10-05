@@ -4,7 +4,7 @@ import { tuneIntents } from './intentsTune.js';
 import { checkIntents } from '@notlm/core';
 import { parseModelJson } from './parseModelJson.js';
 import { buildIntentTunePrompt, buildPackAuthorPrompt } from './prompts.js';
-import type { LlmProvider } from '@notlm/llm';
+import type { LlmProvider } from '@notlm-training/llm';
 
 function mockProvider(text: string): LlmProvider {
   return {

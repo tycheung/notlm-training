@@ -1,5 +1,5 @@
 {
-  "name": "@notlm/llm",
+  "name": "@notlm-training/llm",
   "version": "0.0.0",
   "type": "module",
   "description": "Multi-provider LLM chat adapters for NotLM host BYO + training (not browser runtime)",
