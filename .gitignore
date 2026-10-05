@@ -8,3 +8,7 @@ coverage/
 
 # Laya local convert/train artifacts
 **/.notlm/laya/
+
+__pycache__/
+*.py[cod]
+
