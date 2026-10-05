@@ -11,8 +11,11 @@ is the only place that documents both sides.
 | Pack quality gates (`validate`, `intents check`, `ranker check`, `init`) | `notlm` thin `notlmCLI` |
 | Authoring, saturation, map/tune/prepare, LLM providers, MissExchange, conversation analyze, ranker **train** + ONNX export | **this repo** (`@notlm-training/author`, `llm`, `mapper`, `codegen`, …) |
 
-**Sibling required:** root deps are `file:../notlm/packages/{core,schema,ranker}`.
-Clone beside `notlm`, build operating packages first, then install/build here.
+**Sibling required:** root deps are `file:../notlm/packages/{core,schema,ranker}`
+(operating packages at **0.1.0** public-ready). Clone beside `notlm`, build
+operating packages first, then install/build here. Runtime chat **regenerate**
+is a React chrome action; offline miss/exchange dumps still recalibrate via
+`feedback` / `exchanges` commands here.
 
 ## Install
 
