@@ -13,6 +13,7 @@
   "files": ["dist"],
   "dependencies": {
     "@notlm/core": "*",
+    "@notlm-training/laya-train": "*",
     "@notlm-training/llm": "*",
     "@notlm/schema": "*"
   },

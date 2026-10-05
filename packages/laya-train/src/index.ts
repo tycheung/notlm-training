@@ -1,3 +1,5 @@
+export { aliasesMap, scoreStep } from './intentMatch.js';
+export { layaTrainScriptPath } from './layaTrainScript.js';
 export {
   convertNotlmToLaya,
   buildRecordsForRows,

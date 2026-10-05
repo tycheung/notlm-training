@@ -2,9 +2,8 @@
  * `notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]`
  */
 import { spawn } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { convertNotlmToLaya, type LayaConvertMode } from '@notlm-training/laya-train';
+import { join } from 'node:path';
+import { convertNotlmToLaya, layaTrainScriptPath, type LayaConvertMode } from '@notlm-training/laya-train';
 import {
   ensureDir,
   pathExists,
@@ -13,11 +12,6 @@ import {
   writeJsonFile,
 } from './notlmHome.js';
 import { hasFlag, parseFlag, positionalDirFirst } from './cliFlags.js';
-
-function trainingRepoRoot(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  return resolve(here, '../../..');
-}
 
 function parseMode(args: string[]): LayaConvertMode {
   const raw = (parseFlag(args, '--mode') ?? 'full').trim().toLowerCase();
@@ -58,13 +52,7 @@ export async function cmdLayaTrain(args: string[]): Promise<void> {
   const { manifest } = convertNotlmToLaya(dir, { mode, out: layaDir });
   console.log(`Converted ${manifest.rows} rows → ${manifest.trainPath}`);
 
-  const script = join(
-    trainingRepoRoot(),
-    'packages',
-    'laya-train',
-    'scripts',
-    'laya_train.py'
-  );
+  const script = layaTrainScriptPath();
   const python = process.env.NOTLM_LAYA_PYTHON ?? 'python';
   const trainArgs = [
     script,

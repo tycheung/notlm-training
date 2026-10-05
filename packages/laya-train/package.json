@@ -10,7 +10,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "scripts"],
   "scripts": {
     "build": "tsc -b"
   }

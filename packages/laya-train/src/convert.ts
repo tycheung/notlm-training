@@ -5,6 +5,7 @@ import {
   loadPackJson,
   resolveNotlmHome,
 } from './loadHome.js';
+import { aliasesMap, scoreStep } from './intentMatch.js';
 import type {
   LabeledUtterance,
   LayaConvertManifest,
@@ -16,7 +17,6 @@ import type {
 
 type FlowStep = { id?: string; title?: string; keywords?: string[] };
 type FaqEntry = { id?: string; aliases?: string[]; text?: string };
-type IntentsJson = { aliases?: Record<string, string[]> };
 
 export type ConvertNotlmOptions = {
   mode?: LayaConvertMode;
@@ -27,17 +27,6 @@ export type ConvertNotlmOptions = {
 
 function asSteps(flow: unknown): FlowStep[] {
   return Array.isArray(flow) ? (flow as FlowStep[]) : [];
-}
-
-function aliasesMap(intents: unknown): Record<string, string[]> {
-  if (!intents || typeof intents !== 'object') return {};
-  const aliases = (intents as IntentsJson).aliases;
-  if (!aliases || typeof aliases !== 'object') return {};
-  const out: Record<string, string[]> = {};
-  for (const [k, v] of Object.entries(aliases)) {
-    if (Array.isArray(v)) out[k] = v.filter((x) => typeof x === 'string');
-  }
-  return out;
 }
 
 function faqList(faq: unknown): FaqEntry[] {
@@ -65,18 +54,6 @@ function criteriaText(stepId: string, aliases: string[], keywords: string[], tit
     if (parts.length >= 3 || parts.join(', ').length > 90) break;
   }
   return parts.join(', ').slice(0, 100);
-}
-
-function scoreStep(utterance: string, stepId: string, aliases: string[], keywords: string[]): number {
-  const u = utterance.toLowerCase();
-  let best = 0;
-  for (const a of [...aliases, ...keywords, stepId.replace(/_/g, ' ')]) {
-    const needle = a.toLowerCase();
-    if (!needle) continue;
-    if (u === needle) best = Math.max(best, 1);
-    else if (u.includes(needle)) best = Math.max(best, 0.85);
-  }
-  return best;
 }
 
 function collectLabeled(home: string): {
