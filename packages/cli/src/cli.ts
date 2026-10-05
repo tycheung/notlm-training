@@ -11,7 +11,7 @@ import {
   writeExchangeDraft,
   writeFoldedPackDraft,
 } from '@notlm-training/recalibrate';
-import { takeFlag } from './cliFlags.js';
+import { takeFlag, resolveDirAfterFromFlag } from './cliFlags.js';
 
 export { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
 
@@ -29,8 +29,6 @@ Authoring (not training modes):
   notlm-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
   notlm-training extract host <hostAppRoot>   # workshop → host .notlm/pack (deploy SoT)
   notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
-
-Legacy alias (deprecated): sharpen → auto
 
 Pack quality gates stay on operating notlmCLI:
   notlmCLI validate | intents check | ranker check
@@ -94,15 +92,7 @@ export async function cmdDraft(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const skip = new Set<string>();
-  for (let i = 0; i < args.length; i += 1) {
-    const a = args[i]!;
-    if (a === '--from') {
-      skip.add(a);
-      if (args[i + 1]) skip.add(args[i + 1]!);
-    } else if (a.startsWith('--from=')) skip.add(a);
-  }
-  const dir = args.find((a) => !a.startsWith('-') && !skip.has(a)) ?? process.cwd();
+  const dir = resolveDirAfterFromFlag(args);
   const home = join(dir, '.notlm');
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
@@ -123,15 +113,7 @@ export async function cmdFold(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const skip = new Set<string>();
-  for (let i = 0; i < args.length; i += 1) {
-    const a = args[i]!;
-    if (a === '--from') {
-      skip.add(a);
-      if (args[i + 1]) skip.add(args[i + 1]!);
-    } else if (a.startsWith('--from=')) skip.add(a);
-  }
-  const dir = args.find((a) => !a.startsWith('-') && !skip.has(a)) ?? process.cwd();
+  const dir = resolveDirAfterFromFlag(args);
   const home = join(dir, '.notlm');
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
@@ -181,11 +163,6 @@ export async function runCli(argv: string[]): Promise<void> {
     if (cmd === 'feedback') {
       const { cmdFeedback } = await import('./cmdFeedback.js');
       await cmdFeedback(argv.slice(1));
-      return;
-    }
-    if (cmd === 'sharpen') {
-      const { cmdSharpen } = await import('./cmdSharpen.js');
-      await cmdSharpen(argv.slice(1));
       return;
     }
     if (cmd === 'help' || cmd === '--help' || !cmd) usage();

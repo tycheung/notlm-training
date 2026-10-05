@@ -63,8 +63,6 @@ Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`,
 Runtime decisions stay **System One** (calibrated ranker/rules); LLM growth stays
 offline in `auto` / `feedback` / soft-label authoring.
 
-`sharpen` is a deprecated alias for `auto`.
-
 ### 2) `feedback` — chat / miss logs → targeted fix
 
 ```bash
@@ -84,9 +82,9 @@ npx notlm-training feedback metrics --from ex.json
 `--mode=auto` on conversations analyze auto-accepts checked drafts. `--branch-out`
 optionally saturates around log contexts after a run.
 
-Legacy commands (`train auto`, `sharpen`, `exchanges *`, `conversations *`, …)
-still work as deprecated aliases. `auto pause|resume|stop` (and `train pause|…`)
-were removed with the old growth loop — use `--max-rounds=N` instead.
+Prefer `feedback …` for miss/conversation/metrics flows. Top-level `misses *`
+and `ranker train` remain as thin aliases. `auto pause|resume|stop` were removed
+with the old growth loop — use `--max-rounds=N` instead.
 
 ## Authoring (not training modes)
 

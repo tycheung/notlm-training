@@ -54,6 +54,22 @@ export function positionalDir(
   return undefined;
 }
 
+/** First non-flag positional after stripping `--from` / `--from=` value pairs. */
+export function resolveDirAfterFromFlag(
+  args: string[],
+  fallback = process.cwd()
+): string {
+  const skip = new Set<string>();
+  for (let i = 0; i < args.length; i += 1) {
+    const a = args[i]!;
+    if (a === '--from') {
+      skip.add(a);
+      if (args[i + 1]) skip.add(args[i + 1]!);
+    } else if (a.startsWith('--from=')) skip.add(a);
+  }
+  return args.find((a) => !a.startsWith('-') && !skip.has(a)) ?? fallback;
+}
+
 /** First token that does not start with `-` (no value-flag pairing). */
 export function positionalDirFirst(args: string[]): string | undefined {
   for (const a of args) {
