@@ -1,5 +1,5 @@
 /**
- * Product training mode: `notlm-training auto`
+ * CLI: notlm-training auto
  * System One lane stress — LLM (or fixture morph) generates N×13 lane prompts,
  * scores against pack, patches language JSON, iterates to hardFails=0 / 99.9%.
  * Subcommand: `auto ranker` for explicit pack/ranker.json retrain.

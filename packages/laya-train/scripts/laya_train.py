@@ -310,7 +310,7 @@ def _train_rlcd(
             z = logits.detach().unsqueeze(0) + eps
             q = torch.softmax(z.masked_fill(~mask, -1e4), -1)
 
-            # Reward / RLCD loss (unchanged from prior body — continued below)
+            # Reward / RLCD loss
             with torch.no_grad():
                 r = proper_reward(
                     q,

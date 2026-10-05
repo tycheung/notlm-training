@@ -130,9 +130,7 @@ export async function runFatCli(argv: string[]): Promise<void> {
       break;
     case 'ranker':
       if (sub === 'train') {
-        console.warn(
-          '[deprecated] prefer `notlm-training auto ranker` (ranker train still works)'
-        );
+        console.warn('prefer: notlm-training auto ranker');
         await cmdRankerTrain(rest);
       } else throw new Error('Usage: ranker train … (ranker check stays on notlmCLI)');
       break;

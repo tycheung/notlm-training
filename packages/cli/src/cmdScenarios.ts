@@ -113,10 +113,6 @@ export async function cmdScenariosGenerate(args: string[]): Promise<void> {
   );
 }
 
-/**
- * `notlm-training scenarios saturate [dir] [--batch=100] [--max-batches=N] [--fixture] [--force=N]`
- * Default batch=100 for no-lift rule (5×100). `--force=N` ignores novelty.
- */
 async function softLabelAndDraft(
   home: string,
   files: Record<string, unknown>,
@@ -164,6 +160,7 @@ async function softLabelAndDraft(
  * Used by `notlm-training tune` façade.
  */
 
+/** Default batch=100 for no-lift rule (5×100). `--force=N` ignores novelty. */
 export async function cmdScenariosSaturate(args: string[]): Promise<void> {
   const home = requireNotlmHome(args);
   if (!home) return;
@@ -269,8 +266,3 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
     console.log(`Soft-label fixture draft → ${outDir}`);
   }
 }
-
-/**
- * `notlm-training scenarios label-pool [dir] [--chunk=50] [--fixture]`
- * Soft-label the entire saturation/candidates.json pool in chunks → drafts/.
- */

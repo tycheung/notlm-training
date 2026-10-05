@@ -123,10 +123,7 @@ export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
   );
 }
 
-/**
- * `notlm-training scenarios ask [dir] --force=N --blurb="..." [--label-pool] [--fixture]`
- * Blurb-led user questions at scale (default force 5000). Does not auto-merge pack/.
- */
+/** Blurb-led user questions at scale (default force 5000). Does not auto-merge pack/. */
 export async function cmdScenariosAsk(args: string[]): Promise<void> {
   const force = parseForceCount(args) ?? 5000;
   if (force < 1) {

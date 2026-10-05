@@ -104,15 +104,14 @@ export async function cmdExtractStatic(args: string[]): Promise<void> {
 const PACK_REQUIRED = ['manifest', 'flow', 'controls', 'intents', 'binders'] as const;
 
 /**
- * Host-oriented workshop: extract from a real host SPA into that host's `.notlm/`.
- * Product packs deploy from the host tree (e.g. react-frontend/.notlm/pack) —
- * never from sealed notlm/packs/.
+ * Host-oriented workshop: extract from a host SPA into that host's `.notlm/`.
+ * Product packs deploy from the host tree — not from notlm demo packs.
  */
 export async function cmdExtractHost(args: string[]): Promise<void> {
   const hostRoot = args.find((a) => !a.startsWith('-'));
   if (!hostRoot) {
     console.error('Usage: notlm-training extract host <hostAppRoot>');
-    console.error('Example: notlm-training extract host ../react-frontend');
+    console.error('Example: notlm-training extract host ../my-app');
     process.exitCode = 1;
     return;
   }

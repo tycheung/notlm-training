@@ -1,7 +1,4 @@
-/**
- * 13 System One capability lanes — same contract as VB local stress matrices.
- * Host packs supply domain seeds; lane expect/failIf stay generic enough for scoring.
- */
+/** 13 System One capability lanes; host packs supply domain seeds. */
 export const CORE_CAPABILITY_LANES = [
   'faq',
   'goto',
@@ -31,7 +28,6 @@ export type LaneExpect = {
   failIf?: string;
 };
 
-/** Default expect/failIf (aligned with VB stress matrices). */
 export const LANE_EXPECT: Record<CapabilityLane, LaneExpect> = {
   faq: {
     expect:
@@ -95,10 +91,7 @@ export const LANE_EXPECT: Record<CapabilityLane, LaneExpect> = {
   },
 };
 
-/**
- * Preset LLM pre-prompts per lane (VB sharpen method: distinct domain paraphrases).
- * Host productRole / pack catalog summaries are interpolated by the generator.
- */
+/** Preset LLM pre-prompts per lane; productRole and catalog digest are interpolated. */
 export function laneGeneratePrePrompt(input: {
   lane: CapabilityLane;
   productRole: string;

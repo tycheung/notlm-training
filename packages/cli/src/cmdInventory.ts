@@ -90,10 +90,7 @@ export async function cmdInventoryCrawl(args: string[]): Promise<void> {
   console.log(`Wrote ${invPath} (${merged.controls.length} controls)`);
 }
 
-/**
- * `notlm-training inventory attach [dir] [--map <file>]`
- * Reads inventory.json + control-map.json (guideId→stepId) → drafts/controls-nav.json
- */
+/** Reads inventory.json + control-map.json (guideId→stepId) → drafts/controls-nav.json */
 export async function cmdInventoryAttach(args: string[]): Promise<void> {
   const mapIdx = args.indexOf('--map');
   const mapFile = mapIdx >= 0 ? args[mapIdx + 1] : undefined;

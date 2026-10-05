@@ -1,8 +1,3 @@
-/**
- * Product training mode #2: `notlm-training feedback`
- * Live chat/miss logs → LLM drafts → accept → optional branch-out + ranker retrain.
- *
- */
 import { cmdPull, cmdDraft, cmdFold, cmdMetrics, takeFlag } from './cli.js';
 import { cmdConversationsAnalyze, cmdConversationsPull } from './cmdConversations.js';
 import {
@@ -16,17 +11,6 @@ import { cmdPackAccept } from './commands.js';
 import { hasFlag } from './cliFlags.js';
 import { exited } from './cliExit.js';
 
-/**
- * Subcommands:
- *   feedback pull --url …
- *   feedback draft --from …
- *   feedback fold --from …
- *   feedback conversations pull|analyze …
- *   feedback misses pull|export|draft-aliases …
- *   feedback metrics --from …
- *   feedback accept <draftId> [dir]
- *   feedback run --from <conv.json> …  (analyze; ranker only when pack was auto-accepted)
- */
 export async function cmdFeedback(args: string[]): Promise<void> {
   const sub = args[0];
   const rest = args.slice(1);

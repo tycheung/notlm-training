@@ -234,7 +234,7 @@ export function applyPackPatch(pack: PackJsonInput, patch: PackPatch): PackJsonI
   return pack;
 }
 
-/** Persist pack JSON pieces that sharpen may have grown. */
+/** Persist pack JSON pieces updated by the auto loop. */
 export function writePackFolder(packDir: string, pack: PackJsonInput): void {
   mkdirSync(packDir, { recursive: true });
   const write = (name: string, data: unknown) => {

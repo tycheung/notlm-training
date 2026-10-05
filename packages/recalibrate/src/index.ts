@@ -78,7 +78,7 @@ export function buildExchangeDraft(exchanges: MissExchange[]): {
     proposedCorpus.push({ utterance: e.text, expect: { stepId: null } });
   }
   return {
-    note: '1A: Human-review then fold into pack/intents.json + faq.json + corpus.json; run intents check; pack accept. Refuse buckets must not become step aliases.',
+    note: 'Human-review, then fold into pack/intents.json + faq.json + corpus.json; run intents check; pack accept. Refuse buckets must not become step aliases.',
     buckets: {
       faqCount: buckets.faq.length,
       gotoSteps: Object.fromEntries(

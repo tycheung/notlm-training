@@ -1,7 +1,4 @@
-/**
- * `notlm-training ranker train [dir] [--epochs=40] [--dim=128]`
- * Trains a tiny intent+slot ranker from pack corpus (+ aliases) → pack/ranker.json (+ .onnx).
- */
+/** Trains intent+slot ranker from pack corpus (+ aliases) → pack/ranker.json (+ .onnx). */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {

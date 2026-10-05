@@ -15,10 +15,7 @@ function stamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
 }
 
-/**
- * `notlm-training talk draft [dir] [--fixture]`
- * Drafts replies.json + FAQ + slot asks under drafts/ (build-time only).
- */
+/** Drafts replies.json + FAQ + slot asks under drafts/ (build-time only). */
 export async function cmdTalkDraft(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
   const { home } = resolveNotlmHome(dir);

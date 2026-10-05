@@ -177,7 +177,7 @@ function writeMiniPackDir(packDir: string, pack: PackJsonInput): void {
   );
 }
 
-describe('capabilityStress sharpen', () => {
+describe('capabilityStress', () => {
   it('exposes core + full lane sets and preset pre-prompts', () => {
     expect(CAPABILITY_LANES).toHaveLength(13);
     expect(CORE_CAPABILITY_LANES).toHaveLength(10);
@@ -406,8 +406,8 @@ describe('capabilityStress sharpen', () => {
     expect(pack.normalize?.contextAskPhrases).toContain('why grey now');
   });
 
-  it('fixture sharpen loop patches pack and writes report', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'notlm-sharpen-'));
+  it('fixture auto loop patches pack and writes report', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'notlm-cap-stress-'));
     const packDir = join(root, 'pack');
     const reportDir = join(root, 'report');
     const pack = miniPack();

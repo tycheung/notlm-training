@@ -115,7 +115,6 @@ function collectLabeled(home: string): {
     }
   }
 
-  // Optional Cursor synth draft.
   const draftPath = join(home, 'drafts', 'capability-synth-20260929', 'utterances.json');
   if (existsSync(draftPath)) {
     try {

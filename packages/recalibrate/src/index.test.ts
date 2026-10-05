@@ -75,7 +75,6 @@ describe('recalibrate', () => {
     expect(b.meta).toHaveLength(1);
     expect(b.unlabeled).toHaveLength(1);
 
-    // Exhaustive else branch via cast (defensive).
     const weird = bucketExchanges([
       {
         text: 'x',
@@ -99,7 +98,8 @@ describe('recalibrate', () => {
     expect(d.proposedCorpus.some((c) => c.expect.stepId === null)).toBe(true);
     expect(d.buckets.metaCount).toBe(1);
     expect(d.buckets.unlabeledCount).toBe(1);
-    expect(d.note).toMatch(/1A/);
+    expect(d.note).toMatch(/Human-review.*pack accept/);
+    expect(d.note).toMatch(/Refuse buckets must not become step aliases/);
   });
 
   it('computes fallback share and null when no misses', () => {

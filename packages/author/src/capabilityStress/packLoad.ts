@@ -1,6 +1,4 @@
-/**
- * Load host `.notlm/pack` JSON into PackJsonInput (VB / generic SPA layout).
- */
+/** Load host `.notlm/pack` JSON into PackJsonInput. */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PackJsonInput } from '@notlm/core';

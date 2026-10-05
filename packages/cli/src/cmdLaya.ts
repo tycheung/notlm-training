@@ -1,6 +1,3 @@
-/**
- * `notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]`
- */
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { convertNotlmToLaya, layaTrainScriptPath, type LayaConvertMode } from '@notlm-training/laya-train';

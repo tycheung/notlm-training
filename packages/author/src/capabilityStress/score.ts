@@ -1,7 +1,4 @@
-/**
- * System One local scorer — port of VB director-assistant-capability-stress-local.mjs
- * using @notlm/core loadPackFromJson + catalog/heuristic matchers.
- */
+/** System One local scorer (@notlm/core pack load + catalog/heuristic matchers). */
 import {
   defaultOodRefuseReply,
   loadPackFromJson,
@@ -50,7 +47,6 @@ export function loadStressPack(packJson: PackJsonInput): LoadedPack {
   return loadPackFromJson(packJson);
 }
 
-/** Score one utterance against pack System One surfaces (VB local stress contract). */
 export function scoreCase(c: StressCase, pack: LoadedPack): ScoreResult {
   const expect = reviveRe(c.expect || LANE_EXPECT[c.type].expect);
   const failIf = reviveRe(c.failIf ?? LANE_EXPECT[c.type].failIf);
