@@ -1,10 +1,8 @@
 # notlm-training
 
-Offline **authoring, saturation, feedback, and model training** for [NotLM](../notlm) packs.
+Offline **authoring, saturation, feedback, and model training** for [NotLM](https://github.com/tycheung/notlm) packs.
 
-The browser/runtime packages live in the sibling **`notlm`** repo. This repo never
-ships with the SPA bundle. Quality gates (`validate`, `intents check`, `ranker check`)
-stay on `notlmCLI` in `notlm`.
+The browser/runtime packages live in the sibling **`notlm`** repo. This repo never ships with the SPA bundle. Quality gates (`validate`, `intents check`, `ranker check`) stay on `notlmCLI` in `notlm`.
 
 | Package area | Role |
 |--------------|------|
@@ -40,8 +38,7 @@ npx notlmCLI init ./my-app
 
 ### `auto` — capability stress (13 lanes)
 
-Grow pack language surfaces until hard fails are gone and pass-rate meets the target
-(default **0.999**). Default generation size is **5000 utterances × 13 lanes**.
+Grow pack language surfaces until hard fails are gone and pass-rate meets the target (default **0.999**). Default generation size is **5000 utterances × 13 lanes**.
 
 ```bash
 npx notlm-training auto ./my-app --per-lane=5000 --pass-rate=0.999
@@ -50,8 +47,7 @@ npx notlm-training auto ./my-app --lanes=faq,goto,ood --per-lane=100
 npx notlm-training auto ranker ./my-app   # retrain pack/ranker.json
 ```
 
-Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`,
-`tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
+Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`, `tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
 
 ### `feedback` — logs → pack drafts
 
@@ -69,8 +65,7 @@ npx notlm-training feedback misses pull|export|draft-aliases …
 npx notlm-training feedback metrics --from ex.json
 ```
 
-`feedback accept` copies a checked draft into `.notlm/pack/` and retrains the ranker.
-Unchecked drafts are refused unless `NOTLM_FORCE_ACCEPT=1`.
+`feedback accept` copies a checked draft into `.notlm/pack/` and retrains the ranker. Unchecked drafts are refused unless `NOTLM_FORCE_ACCEPT=1`.
 
 ## Authoring
 
@@ -84,12 +79,11 @@ npx notlm-training inventory …
 npx notlm-training annotate checklist …
 ```
 
-Product packs are **host-owned**: write into `<host>/.notlm/pack/*.json`, then ship
-with the host frontend. Demo packs in `notlm` are examples only.
+Product packs are **host-owned**: write into `<host>/.notlm/pack/*.json`, then ship with the host frontend. Demo packs in `notlm` are examples only.
 
 ## LLM providers
 
-Set `NOTLM_LLM_*` — see [`packages/llm/README.md`](packages/llm/README.md).
+Set `NOTLM_LLM_*`. See [`packages/llm/README.md`](packages/llm/README.md).
 
 Soft-label / auto labeler: `NOTLM_LABELER=llm|laya|mock`.
 
@@ -100,12 +94,14 @@ npx notlm-training laya convert ./my-app --mode=full
 npx notlm-training laya train ./my-app --mode=light --dry-run
 ```
 
-Produces `.notlm/laya/train.jsonl` and (with GPU + deps) a checkpoint. Nightly host
-promote paths update pack aliases / `ranker.json` only — they do not run `laya train`
-on the API box.
+Produces `.notlm/laya/train.jsonl` and (with GPU + deps) a checkpoint. Nightly host promote paths update pack aliases / `ranker.json` only; they do not run `laya train` on the API box.
 
 ## CI
 
 ```bash
 npm run ci   # build + coverage (expects sibling notlm built)
 ```
+
+## License
+
+See [LICENSE](LICENSE) (same family as the runtime repo unless noted otherwise).
