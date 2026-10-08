@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PackJsonInput } from '@notlm/core';
+import type { LlmProvider } from '@notlm-training/llm';
 import { writePackFolder, writeAutoReport } from '../capabilityStress/patch.js';
 import {
   appendGradeLog,
@@ -27,7 +28,7 @@ import {
   loadE2eCases,
   morphUtterance,
 } from './loadCases.js';
-import { applyLesson, upsertScenarioRow } from './learn.js';
+import { applyLessonAsync, upsertScenarioRow } from './learn.js';
 import type {
   E2eAutoConfig,
   E2eAutoReport,
@@ -123,6 +124,11 @@ export async function runE2eAutoLoop(input: {
   packDir: string;
   pack: PackJsonInput;
   config?: Partial<E2eAutoConfig>;
+  /**
+   * Optional LLM for lesson patches when config.fixture=false.
+   * Used by local Composer file-bridge / HTTP providers — not required for fixture mode.
+   */
+  provider?: LlmProvider | null;
   /** Injected cases (tests). */
   cases?: E2eCase[];
   onLog?: (msg: string) => void;
@@ -291,7 +297,10 @@ export async function runE2eAutoLoop(input: {
         });
       }
 
-      const { applied, patch } = applyLesson(pack, graded);
+      const { applied, patch } = await applyLessonAsync(pack, graded, {
+        provider: input.provider,
+        fixture: config.fixture,
+      });
       if (applied) {
         writePackFolder(input.packDir, pack);
         if (c.expect.faqId) {
@@ -344,7 +353,8 @@ export async function runE2eAutoLoop(input: {
       lastF1.f1 >= config.minF1 &&
       lastF1.confusion.fp + lastF1.confusion.fn === 0
     ) {
-      // Perfect running F1 with enough support — can stop early mid-sweep.
+      // Perfect running confusion + F1 target — safe mid-sweep stop.
+      // (Partial sweeps with residual FN must finish the bank / end-of-sweep check.)
       stopReason = 'min_f1';
       break;
     }

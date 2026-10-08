@@ -5,6 +5,8 @@ coverage/
 .DS_Store
 # Local / host-specific trainer scripts at repo root (not packages/*/scripts)
 /scripts/
+# Local Composer file-bridge + scratch for e2eauto
+.work/
 
 # Laya local convert/train artifacts
 **/.notlm/laya/

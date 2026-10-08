@@ -8,10 +8,12 @@ import {
   looksLikeClearOod,
   looksLikeContextAsk,
   looksLikeExplainLast,
+  looksLikeNavCommand,
   matchFaqEntry,
   matchStrongFaqEntry,
   normalizeUtterance,
   parseUtterance,
+  type FaqEntry,
   type LoadedPack,
   type PackJsonInput,
 } from '@notlm/core';
@@ -28,7 +30,9 @@ export function evaluateUtterance(
   const textRaw = utterance.trim();
   const text = normalizeUtterance(textRaw, pack.normalize) || textRaw;
   const faq = pack.faq ?? [];
-  const strong = matchStrongFaqEntry(faq, textRaw);
+  // Mirror production dispatch: nav commands skip FAQ short-circuit.
+  const nav = looksLikeNavCommand(textRaw, pack.compiledHeuristics);
+  const strongRaw = matchStrongFaqEntry(faq, textRaw);
   const weak = matchFaqEntry(faq, textRaw);
   const phrasesCtx = pack.contextAskPhrases ?? pack.normalize?.contextAskPhrases;
   const phrasesAudit =
@@ -47,6 +51,7 @@ export function evaluateUtterance(
 
   let stepId: string | null = null;
   let rawIntent: string | null = null;
+  let parsedFaqId: string | null = null;
   try {
     const parsed = parseUtterance(textRaw, {
       steps: pack.steps,
@@ -60,8 +65,20 @@ export function evaluateUtterance(
     });
     stepId = parsed.stepId ?? null;
     rawIntent = parsed.rawIntent ?? null;
+    parsedFaqId =
+      typeof (parsed as { faqId?: string }).faqId === 'string'
+        ? (parsed as { faqId?: string }).faqId!
+        : null;
   } catch {
     // Incomplete host flow (missing keywords) — still grade FAQ/OOD.
+  }
+
+  // Prefer parse routing: if parse claimed FAQ/step, trust that over raw FAQ scan.
+  let strong: FaqEntry | null = null;
+  if (parsedFaqId) {
+    strong = faq.find((f) => f.id === parsedFaqId) ?? strongRaw;
+  } else if (!nav && !stepId) {
+    strong = strongRaw;
   }
 
   let replyStub = '';
@@ -69,10 +86,10 @@ export function evaluateUtterance(
     replyStub = defaultOodRefuseReply(textRaw, pack.productRole);
   } else if (strong?.text) {
     replyStub = strong.text;
-  } else if (weak?.text) {
-    replyStub = weak.text;
   } else if (stepId) {
     replyStub = `goto:${stepId}`;
+  } else if (weak?.text && !nav) {
+    replyStub = weak.text;
   } else if (contextAsk) {
     replyStub = `context:${text}`;
   } else if (explainLast) {
@@ -81,7 +98,7 @@ export function evaluateUtterance(
 
   return {
     strongFaqId: strong?.id ?? null,
-    weakFaqId: weak?.id ?? null,
+    weakFaqId: nav || stepId ? null : (weak?.id ?? null),
     stepId,
     rawIntent,
     ood,

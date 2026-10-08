@@ -48,9 +48,9 @@ export async function cmdE2eAuto(args: string[]): Promise<void> {
   const fixture = hasFlag(args, '--fixture') || fromHome.fixture === true;
   const writePack = !hasFlag(args, '--no-write');
   const reshuffle = !hasFlag(args, '--once');
+  // --once = one full sweep (maxRounds 0 + no reshuffle), not a single case.
   const maxRounds = Number(
-    takeFlag(args, '--max-rounds') ??
-      (fromHome.maxRounds != null ? fromHome.maxRounds : reshuffle ? 0 : 1)
+    takeFlag(args, '--max-rounds') ?? fromHome.maxRounds ?? 0
   );
   const maxLessons = Number(
     takeFlag(args, '--max-lessons') ?? fromHome.maxLessons ?? 0

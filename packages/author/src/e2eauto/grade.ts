@@ -61,6 +61,16 @@ export function gradeOutcome(c: E2eCase, outcome: E2eOutcome): E2eGraded {
 
   if (wantsFaq(c)) {
     const want = c.expect.faqId!;
+    // Dual expect (faqId + stepId): either System One path is acceptable.
+    if (
+      typeof c.expect.stepId === 'string' &&
+      c.expect.stepId &&
+      outcome.stepId === c.expect.stepId
+    ) {
+      grade = 'Correct';
+      reasons.push(`step ${c.expect.stepId} (dual expect with FAQ ${want})`);
+      return finish(c, outcome, grade, reasons);
+    }
     if (outcome.strongFaqId === want) {
       if (
         c.expect.stepId != null &&

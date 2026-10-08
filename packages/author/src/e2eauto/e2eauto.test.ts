@@ -7,7 +7,8 @@ import { loadPackJsonFromFolder, resolvePackFolder } from '../capabilityStress/p
 import { evaluateUtterance, loadE2ePack } from './evaluate.js';
 import { gradeOutcome } from './grade.js';
 import { loadE2eCases } from './loadCases.js';
-import { applyLesson } from './learn.js';
+import type { LlmProvider } from '@notlm-training/llm';
+import { applyLesson, collidingFaqAliases, proposeLessonPatch } from './learn.js';
 import { runE2eAutoLoop } from './loop.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../../../');
@@ -60,6 +61,86 @@ describe('e2eauto evaluate/grade/learn', () => {
     expect(applied).toBe(true);
     const after = evaluateUtterance('What is Max 300?', loadE2ePack(pack));
     expect(after.strongFaqId).toBe('faq-max-300');
+  });
+
+  it('lesson strips FAQ aliases that steal a step expect', () => {
+    const packDir = resolvePackFolder(fixtureRoot);
+    const pack = loadPackJsonFromFolder(packDir);
+    pack.faq = [
+      ...(pack.faq || []),
+      {
+        id: 'faq-scoring',
+        aliases: ['start scores wont open', 'how does scoring work'],
+        text: 'scoring faq',
+      },
+    ];
+    pack.intents = {
+      ...(pack.intents || {}),
+      aliases: { ...(pack.intents?.aliases || {}), enter_scores: [] },
+    };
+    const utterance = 'please bro start scores wont open what am i missing help?';
+    const graded = {
+      case: {
+        id: 'steal',
+        utterance,
+        expect: { stepId: 'enter_scores' },
+        source: 't',
+      },
+      outcome: {
+        strongFaqId: 'faq-scoring',
+        weakFaqId: 'faq-scoring',
+        stepId: null,
+        rawIntent: 'faq',
+        ood: false,
+        explainLast: false,
+        contextAsk: false,
+        replyStub: 'scoring faq',
+      },
+      grade: 'Partly' as const,
+      reasons: ['wanted step; got FAQ faq-scoring'],
+      needsLearn: true,
+    };
+    const steal = (pack.faq || []).find((f) => f.id === 'faq-scoring');
+    expect(collidingFaqAliases(steal, utterance).length).toBeGreaterThan(0);
+    const { applied, patch } = applyLesson(pack, graded);
+    expect(applied).toBe(true);
+    expect(patch.faqRemoveAliases?.[0]?.id).toBe('faq-scoring');
+    const after = (pack.faq || []).find((f) => f.id === 'faq-scoring');
+    expect(after?.aliases.some((a) => /start scores wont open/i.test(a))).toBe(
+      false
+    );
+  });
+
+  it('proposeLessonPatch uses injected LLM JSON when fixture=false', async () => {
+    const packDir = resolvePackFolder(fixtureRoot);
+    const pack = loadPackJsonFromFolder(packDir);
+    const loaded = loadE2ePack(pack);
+    const miss = evaluateUtterance('alias only for llm path please', loaded);
+    const graded = gradeOutcome(
+      {
+        id: 'llm-miss',
+        utterance: 'alias only for llm path please',
+        expect: { faqId: 'faq-max-300' },
+        source: 't',
+      },
+      miss
+    );
+    const provider: LlmProvider = {
+      async completeChat() {
+        return JSON.stringify({
+          faq: [{ id: 'faq-max-300', aliases: ['alias only for llm path please'] }],
+          notes: 'from-mock-llm',
+        });
+      },
+    };
+    const patch = await proposeLessonPatch({
+      pack,
+      graded,
+      provider,
+      fixture: false,
+    });
+    expect(patch.notes).toBe('from-mock-llm');
+    expect(patch.faq?.[0]?.id).toBe('faq-max-300');
   });
 
   it('loop checkpoints and learns until miss is Correct', async () => {

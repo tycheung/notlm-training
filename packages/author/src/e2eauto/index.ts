@@ -22,7 +22,11 @@ export {
 } from './grade.js';
 export {
   applyLesson,
+  applyLessonAsync,
+  collidingFaqAliases,
   lessonPatchFromGraded,
+  lessonPatchLlmPrompt,
+  proposeLessonPatch,
   upsertScenarioRow,
 } from './learn.js';
 export {

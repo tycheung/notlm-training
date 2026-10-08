@@ -12,7 +12,11 @@ import type { SuiteSummary } from './score.js';
 
 export type PackPatch = {
   aliases?: Record<string, string[]>;
+  /** Remove step aliases that steal a different expected step. */
+  aliasRemove?: Record<string, string[]>;
   faq?: Array<{ id: string; aliases: string[]; text?: string }>;
+  /** Remove polluted FAQ aliases that steal step/nav expects. */
+  faqRemoveAliases?: Array<{ id: string; aliases: string[] }>;
   queryAliases?: Record<string, string[]>;
   mutationAliases?: Record<string, string[]>;
   tourAliases?: Record<string, string[]>;
@@ -168,6 +172,19 @@ export function applyPackPatch(pack: PackJsonInput, patch: PackPatch): PackJsonI
       aliases: mergeAliasMap(pack.intents?.aliases, patch.aliases),
     };
   }
+  if (patch.aliasRemove && Object.keys(patch.aliasRemove).length) {
+    const cur = { ...(pack.intents?.aliases || {}) };
+    for (const [id, dropList] of Object.entries(patch.aliasRemove)) {
+      const drop = new Set(
+        (dropList || []).map((a) => String(a || '').trim().toLowerCase()).filter(Boolean)
+      );
+      if (!drop.size || !cur[id]) continue;
+      cur[id] = (cur[id] || []).filter(
+        (a) => !drop.has(String(a || '').trim().toLowerCase())
+      );
+    }
+    pack.intents = { ...pack.intents, aliases: cur };
+  }
   if (patch.faq?.length) {
     const byId = new Map((pack.faq || []).map((f) => [f.id, { ...f }]));
     for (const row of patch.faq) {
@@ -184,6 +201,27 @@ export function applyPackPatch(pack: PackJsonInput, patch: PackPatch): PackJsonI
       }
     }
     pack.faq = [...byId.values()] as PackJsonInput['faq'];
+  }
+  if (patch.faqRemoveAliases?.length) {
+    const dropById = new Map<string, Set<string>>();
+    for (const row of patch.faqRemoveAliases) {
+      const set = dropById.get(row.id) || new Set<string>();
+      for (const a of row.aliases || []) {
+        const t = String(a || '').trim().toLowerCase();
+        if (t) set.add(t);
+      }
+      dropById.set(row.id, set);
+    }
+    pack.faq = (pack.faq || []).map((f) => {
+      const drop = dropById.get(f.id);
+      if (!drop?.size) return f;
+      return {
+        ...f,
+        aliases: (f.aliases || []).filter(
+          (a) => !drop.has(String(a || '').trim().toLowerCase())
+        ),
+      };
+    }) as PackJsonInput['faq'];
   }
   if (patch.queryAliases) {
     pack.queries = (pack.queries || []).map((q) => ({
