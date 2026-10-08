@@ -1,0 +1,16 @@
+{
+  "id": "e2eauto-demo",
+  "version": "0.0.0",
+  "title": "e2eauto fixture pack",
+  "productRole": "tournament director guide",
+  "features": { "chat": true, "palette": true, "spotlight": true, "voice": true },
+  "files": {
+    "flow": "flow.json",
+    "controls": "controls.json",
+    "intents": "intents.json",
+    "binders": "binders.json",
+    "corpus": "corpus.json",
+    "faq": "faq.json",
+    "normalize": "normalize.json"
+  }
+}

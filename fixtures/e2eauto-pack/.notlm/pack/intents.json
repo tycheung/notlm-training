@@ -1,0 +1,7 @@
+{
+  "aliases": {
+    "create_tournament": ["create tournament", "new tournament"]
+  },
+  "meta": {},
+  "metaPatterns": {}
+}

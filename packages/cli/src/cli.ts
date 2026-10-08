@@ -22,6 +22,13 @@ export function usage(): void {
     # System One: LLM preset pre-prompts → N×13 lanes → score → patch pack → iterate
   notlm-training auto ranker [dir]   # explicit pack/ranker.json retrain
 
+  notlm-training e2eauto [dir] [--sources=faq-scenarios.json,…] [--fixture] [--once]
+                        [--max-rounds=0] [--max-lessons=0] [--checkpoint-every=1]
+                        [--min-f1=0.95] [--min-f1-cases=20]
+                        [--retrain-ranker-every=0] [--pause-ms=0] [--no-write]
+    # Browser-free audit/NLU loop: evaluate host scenarios → grade → checkpoint → learn → repeat
+    # Stop when sweep micro-F1 (TP/FP/FN) >= --min-f1. Writes host .notlm only.
+
   notlm-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
   notlm-training feedback conversations pull|analyze …
 
@@ -158,6 +165,11 @@ export async function runCli(argv: string[]): Promise<void> {
         );
         process.exitCode = 1;
       } else await cmdAuto(argv.slice(1));
+      return;
+    }
+    if (cmd === 'e2eauto') {
+      const { cmdE2eAuto } = await import('./cmdE2eAuto.js');
+      await cmdE2eAuto(argv.slice(1));
       return;
     }
     if (cmd === 'feedback') {

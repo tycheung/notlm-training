@@ -1,0 +1,17 @@
+[
+  {
+    "id": "faq-bracket-byes",
+    "aliases": ["how many byes can a bracket have", "what is a bye"],
+    "text": "A bracket can never have more than one bye."
+  },
+  {
+    "id": "faq-max-300",
+    "aliases": ["does max 300 apply in stepladder"],
+    "text": "Max 300 applies in every round, including stepladder finals."
+  },
+  {
+    "id": "faq-help",
+    "aliases": ["help"],
+    "text": "Ask a product question or say what's next."
+  }
+]

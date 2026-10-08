@@ -1,0 +1,9 @@
+[
+  {
+    "id": "create_tournament",
+    "title": "Create tournament",
+    "keywords": ["tournament", "create tournament", "new tournament"],
+    "kind": "hard",
+    "requires": []
+  }
+]

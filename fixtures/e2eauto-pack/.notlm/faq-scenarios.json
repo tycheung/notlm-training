@@ -1,0 +1,22 @@
+[
+  {
+    "id": "e2e-byes-known",
+    "utterance": "How many byes can a bracket have?",
+    "expect": { "faqId": "faq-bracket-byes" }
+  },
+  {
+    "id": "e2e-max300-miss",
+    "utterance": "What is Max 300?",
+    "expect": { "faqId": "faq-max-300" }
+  },
+  {
+    "id": "e2e-help",
+    "utterance": "help",
+    "expect": { "faqId": "faq-help" }
+  },
+  {
+    "id": "e2e-weather-ood",
+    "utterance": "What's the weather forecast for this weekend?",
+    "expect": { "ood": true }
+  }
+]

@@ -49,6 +49,50 @@ npx notlm-training auto ranker ./my-app   # retrain pack/ranker.json
 
 Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`, `tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
 
+### `e2eauto` — browser-free audit / NLU learning loop
+
+Emulates the live Assistant QA audit **without** browser automation: load host
+scenario banks (`faq-scenarios.json`, `cb-handoff-scenarios.json`, …), evaluate
+each utterance with production System One gates (`matchStrongFaqEntry` + parse +
+OOD), grade Correct / Partly / Wrong / NoReply / LayaRisk, **checkpoint** the
+host pack, then learn (append aliases to the **expected** FAQ/step) and continue.
+
+Writes **only** the host `.notlm/` tree (pack + scenario banks). Never sealed
+`notlm/packs/`. Faster than Playwright; suitable for continuous overnight runs.
+
+```bash
+# One pass over Victory host scenarios (stop when queue done)
+npx notlm-training e2eauto ../react-frontend --fixture --once --max-lessons=50
+
+# Endless until micro-F1 >= 0.95 (FP/FN aware); checkpoint every lesson
+npx notlm-training e2eauto ../react-frontend --fixture --max-rounds=0 --min-f1=0.95 --min-f1-cases=40
+
+# Optional ranker retrain every N lessons
+npx notlm-training e2eauto ../react-frontend --fixture --once --retrain-ranker-every=5
+```
+
+F1 uses `@notlm/core` `metricsF1` (precision/recall from TP/FP/FN on strong FAQ /
+OOD / step labels). LLM morph/patch needs `NOTLM_LLM_*` (ollama / openai /
+anthropic / huggingface / openai-compat) — Cursor Composer is **not** an HTTP
+provider; use `--fixture` for deterministic alias learning without an API key.
+
+Artifacts: `.notlm/train-e2eauto/{state.json,report.json,grades.jsonl,checkpoint/<n>/}`.
+
+Host knobs (optional) in `.notlm/config.json`:
+
+```json
+{
+  "e2eauto": {
+    "sources": ["faq-scenarios.json", "cb-handoff-scenarios.json"],
+    "fixture": true,
+    "checkpointEvery": 1,
+    "minF1": 0.95,
+    "minF1Cases": 40,
+    "retrainRankerEvery": 5
+  }
+}
+```
+
 ### `feedback` — logs → pack drafts
 
 ```bash

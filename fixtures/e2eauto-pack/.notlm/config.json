@@ -1,0 +1,13 @@
+{
+  "home": ".notlm",
+  "packId": "e2eauto-demo",
+  "features": { "chat": true, "palette": true, "spotlight": true, "voice": true },
+  "e2eauto": {
+    "sources": ["faq-scenarios.json"],
+    "fixture": true,
+    "checkpointEvery": 1,
+    "reshuffle": false,
+    "maxRounds": 20,
+    "maxLessons": 10
+  }
+}
