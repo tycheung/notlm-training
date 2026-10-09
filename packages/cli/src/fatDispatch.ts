@@ -27,9 +27,11 @@ import { cmdRankerTrain } from './cmdRanker.js';
 import { cmdLaya } from './cmdLaya.js';
 import { cmdTalkDraft } from './cmdTalkDraft.js';
 import {
+  cmdMissesCluster,
   cmdMissesDraftAliases,
   cmdMissesExport,
   cmdMissesPull,
+  cmdPackEmbedIndex,
 } from './cmdMisses.js';
 
 const FAT_TOP = new Set([
@@ -53,7 +55,9 @@ const FAT_TOP = new Set([
 export function isFatCommand(cmd: string | undefined, sub?: string): boolean {
   if (!cmd) return false;
   if (FAT_TOP.has(cmd)) {
-    if (cmd === 'pack') return sub === 'author' || sub === 'accept';
+    if (cmd === 'pack') {
+      return sub === 'author' || sub === 'accept' || sub === 'embed-index';
+    }
     return true;
   }
   if (cmd === 'intents' && sub === 'tune') return true;
@@ -102,7 +106,8 @@ export async function runFatCli(argv: string[]): Promise<void> {
     case 'pack':
       if (sub === 'author') await cmdPackAuthor(rest);
       else if (sub === 'accept') await cmdPackAccept(rest[0]!, rest[1]);
-      else throw new Error('Usage: pack author|accept …');
+      else if (sub === 'embed-index') await cmdPackEmbedIndex(rest);
+      else throw new Error('Usage: pack author|accept|embed-index …');
       break;
     case 'intents':
       if (sub === 'tune') await cmdIntentsTune(rest);
@@ -141,7 +146,8 @@ export async function runFatCli(argv: string[]): Promise<void> {
       if (sub === 'export') await cmdMissesExport(rest);
       else if (sub === 'pull') await cmdMissesPull(rest);
       else if (sub === 'draft-aliases') await cmdMissesDraftAliases(rest);
-      else throw new Error('Usage: misses export|pull|draft-aliases …');
+      else if (sub === 'cluster') await cmdMissesCluster(rest);
+      else throw new Error('Usage: misses export|pull|draft-aliases|cluster …');
       break;
     default:
       throw new Error(`Not a fat command: ${cmd}`);

@@ -32,6 +32,11 @@ export default defineConfig({
         // Type-only modules (no runtime statements under v8).
         'packages/laya-train/src/types.ts',
         'packages/author/src/saturation/types.ts',
+        'packages/author/src/e2eauto/types.ts',
+        // e2eauto / live labeler — CLI + fixture smoke, not unit-coverage gates.
+        'packages/author/src/e2eauto/**',
+        'packages/author/src/labeler/**',
+        'packages/laya-train/src/writeLayaTrainScript.ts',
       ],
       thresholds: {
         lines: 85,

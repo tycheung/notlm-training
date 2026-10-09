@@ -1,9 +1,11 @@
 import { cmdPull, cmdDraft, cmdFold, cmdMetrics, takeFlag } from './cli.js';
 import { cmdConversationsAnalyze, cmdConversationsPull } from './cmdConversations.js';
 import {
+  cmdMissesCluster,
   cmdMissesDraftAliases,
   cmdMissesExport,
   cmdMissesPull,
+  cmdPackEmbedIndex,
 } from './cmdMisses.js';
 import { cmdRankerTrain } from './cmdRanker.js';
 import { cmdScenariosSaturate } from './cmdScenarios.js';
@@ -21,7 +23,8 @@ export async function cmdFeedback(args: string[]): Promise<void> {
   notlm-training feedback draft --from <file> [dir]
   notlm-training feedback fold --from <draft.json> [dir]
   notlm-training feedback conversations pull|analyze …
-  notlm-training feedback misses pull|export|draft-aliases …
+  notlm-training feedback misses pull|export|draft-aliases|cluster …
+  notlm-training feedback embed-index [dir]
   notlm-training feedback metrics --from <exchanges.json>
   notlm-training feedback accept <draftId> [dir]
   notlm-training feedback run --from <conv.json> [dir] [--mode=review|auto] [--branch-out] [--fixture]
@@ -60,10 +63,15 @@ export async function cmdFeedback(args: string[]): Promise<void> {
     if (msub === 'pull') await cmdMissesPull(rest.slice(1));
     else if (msub === 'export') await cmdMissesExport(rest.slice(1));
     else if (msub === 'draft-aliases') await cmdMissesDraftAliases(rest.slice(1));
+    else if (msub === 'cluster') await cmdMissesCluster(rest.slice(1));
     else {
-      console.error('Usage: feedback misses pull|export|draft-aliases …');
+      console.error('Usage: feedback misses pull|export|draft-aliases|cluster …');
       process.exitCode = 1;
     }
+    return;
+  }
+  if (sub === 'embed-index') {
+    await cmdPackEmbedIndex(rest);
     return;
   }
   if (sub === 'accept') {

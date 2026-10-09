@@ -9,7 +9,8 @@ The browser/runtime packages live in the sibling **`notlm`** repo. This repo nev
 | `@notlm-training/author` | Saturation, soft-label, capability stress (`auto`), pack drafts |
 | `@notlm-training/llm` | Server-side LLM providers for authoring (env-configured) |
 | `@notlm-training/mapper` | Static extract, inventory crawl, control map drafts |
-| `@notlm-training/recalibrate` | MissExchange / conversation fold drafts |
+| `@notlm-training/recalibrate` | MissExchange / conversation fold drafts; **miss clustering** → alias/ranker candidates |
+| Semantic index | `pack embed-index` builds hashed n-gram FAQ/query index for runtime System One retrieve |
 | `@notlm-training/ranker-train` | Train `ranker.json` (+ optional ONNX) |
 | `@notlm-training/laya-train` | Convert pack → Laya JSONL; local fine-tune bridge |
 | `@notlm-training/codegen` | Checklist / jobs helpers |
@@ -105,7 +106,12 @@ npx notlm-training feedback conversations pull --url … --out conv.json
 npx notlm-training feedback conversations analyze --from conv.json ./my-app --mode=review
 npx notlm-training feedback run --from conv.json ./my-app --mode=auto
 
-npx notlm-training feedback misses pull|export|draft-aliases …
+npx notlm-training feedback misses pull|export|draft-aliases|cluster …
+# Cluster production misses → proposed FAQ/query aliases + ranker corpus
+npx notlm-training misses cluster --from misses.json ../react-frontend
+# Build pack/semantic-index.json (hashed n-grams) for System One semantic retrieve
+npx notlm-training pack embed-index ../react-frontend
+npx notlm-training feedback embed-index ../react-frontend
 npx notlm-training feedback metrics --from ex.json
 ```
 

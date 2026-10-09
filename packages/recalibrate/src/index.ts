@@ -443,3 +443,11 @@ export function loadExchangesFromJson(data: unknown): MissExchange[] {
 export { parseMissRecords };
 
 export type { MissExchange, MissProposed };
+
+export {
+  annotateClustersWithPack,
+  clusterMissRecords,
+  draftFromMissClusters,
+  type MissCluster,
+  type MissClusterDraft,
+} from './missCluster.js';

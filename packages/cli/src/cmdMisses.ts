@@ -7,7 +7,13 @@ import {
   type MissExchange,
   type MissRecord,
 } from '@notlm/core';
-import { buildExchangeDraft } from '@notlm-training/recalibrate';
+import {
+  annotateClustersWithPack,
+  buildExchangeDraft,
+  clusterMissRecords,
+  draftFromMissClusters,
+} from '@notlm-training/recalibrate';
+import { buildSemanticIndex, type FaqEntry } from '@notlm/core';
 import { validateMissRecordList } from '@notlm/schema';
 import { draftsDir, loadPackFolderJson, pathExists, resolveNotlmHome } from './notlmHome.js';
 import { FEEDBACK_PATH_FLAGS, positionalDir, takeFlag } from './cliFlags.js';
@@ -206,4 +212,82 @@ export async function cmdMissesDraftAliases(args: string[]): Promise<void> {
   );
   const count = Array.isArray(draft.records) ? draft.records.length : 0;
   console.log(`Miss draft → ${outDir} (${count} records)`);
+}
+
+/**
+ * Cluster miss utterances and emit alias/ranker training candidates.
+ * System One coverage engine: misses → clusters → proposed FAQ/query aliases.
+ */
+export async function cmdMissesCluster(args: string[]): Promise<void> {
+  const dir = positionalDir(args, FEEDBACK_PATH_FLAGS);
+  const fromPath = takeFlag(args, '--from');
+  if (!fromPath) {
+    console.error(
+      'Usage: notlm-training misses cluster --from <file.json|jsonl> [dir]'
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const { home } = resolveNotlmHome(dir);
+  if (!pathExists(home)) {
+    console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const records = parseMissRecords(readFileSync(fromPath, 'utf8'));
+  let clusters = clusterMissRecords(records);
+  try {
+    const files = loadPackFolderJson(home);
+    const faq = (files.faq as FaqEntry[] | undefined) ?? [];
+    const queries = (files.queries as Array<{ id: string; title: string; aliases: string[] }> | undefined) ?? [];
+    clusters = annotateClustersWithPack(clusters, {
+      faq,
+      queries,
+      semanticIndex: buildSemanticIndex({ faq, queries }),
+    });
+  } catch {
+    /* pack optional */
+  }
+
+  const draft = draftFromMissClusters(clusters);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const outDir = join(draftsDir(home), `misses-cluster-${stamp}`);
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, 'clusters.json'), `${JSON.stringify(clusters, null, 2)}\n`, 'utf8');
+  writeFileSync(join(outDir, 'draft.json'), `${JSON.stringify(draft, null, 2)}\n`, 'utf8');
+  writeFileSync(
+    join(outDir, 'meta.json'),
+    `${JSON.stringify({ checked: false, kind: 'misses-cluster' }, null, 2)}\n`,
+    'utf8'
+  );
+  console.log(
+    `Miss clusters → ${outDir} (${clusters.length} clusters, ${records.length} records)`
+  );
+}
+
+/**
+ * Build hashed n-gram semantic index from pack FAQ/query into pack/semantic-index.json.
+ */
+export async function cmdPackEmbedIndex(args: string[]): Promise<void> {
+  const dir = positionalDir(args, FEEDBACK_PATH_FLAGS);
+  const { home } = resolveNotlmHome(dir);
+  if (!pathExists(home)) {
+    console.error(`Missing NotLM home: ${home}`);
+    process.exitCode = 1;
+    return;
+  }
+  const files = loadPackFolderJson(home);
+  const faq = (files.faq as FaqEntry[] | undefined) ?? [];
+  const queries =
+    (files.queries as Array<{ id: string; title: string; aliases: string[] }> | undefined) ??
+    [];
+  const index = buildSemanticIndex({ faq, queries });
+  const packDir = join(home, 'pack');
+  mkdirSync(packDir, { recursive: true });
+  const outPath = join(packDir, 'semantic-index.json');
+  writeFileSync(outPath, `${JSON.stringify(index, null, 2)}\n`, 'utf8');
+  console.log(
+    `Semantic index → ${outPath} (${index.docs.length} docs, dim=${index.dim})`
+  );
 }
