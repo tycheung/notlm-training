@@ -29,11 +29,18 @@ export type MissClusterDraft = {
   clusters: MissCluster[];
   /** Proposed FAQ aliases keyed by faq id (centroid + members). */
   proposedFaqAliases: Record<string, string[]>;
-  /** Proposed step/query aliases for ranker corpus. */
+  /** Proposed step (goto) aliases — rarely filled from FAQ/query nearest. */
   proposedAliases: Record<string, string[]>;
+  /** Desk query aliases keyed by query id (merge into pack/queries.json). */
+  proposedQueryAliases?: Record<string, string[]>;
   proposedCorpus: Array<{
     utterance: string;
-    expect: { stepId: string | null; faqId?: string; queryId?: string };
+    expect: {
+      stepId: string | null;
+      faqId?: string;
+      queryId?: string;
+      rawIntent?: string;
+    };
   }>;
   singletonCount: number;
 };
@@ -112,9 +119,17 @@ export function clusterMissRecords(
 /** Attach nearest FAQ/query via semantic retrieve for each cluster centroid. */
 export function annotateClustersWithPack(
   clusters: MissCluster[],
-  pack: { faq?: FaqEntry[]; queries?: QueryLike[]; semanticIndex?: SemanticIndex | null }
+  pack: {
+    faq?: FaqEntry[];
+    queries?: QueryLike[];
+    semanticIndex?: SemanticIndex | null;
+    /** Custom layer docs (paraphrases) merged above the base index. */
+    semanticIndexCustom?: SemanticIndex | null;
+    /** When true, dim mismatch throws instead of omitting custom. */
+    strictCustom?: boolean;
+  }
 ): MissCluster[] {
-  const index =
+  const base =
     pack.semanticIndex ??
     buildSemanticIndex({
       faq: pack.faq,
@@ -124,13 +139,32 @@ export function annotateClustersWithPack(
         aliases: q.aliases ?? [],
       })),
     });
+  let custom = pack.semanticIndexCustom ?? null;
+  if (custom) {
+    const baseDim =
+      base.dim || base.docs[0]?.vector?.length || 256;
+    const customDim =
+      custom.dim || custom.docs[0]?.vector?.length || 256;
+    if (baseDim !== customDim) {
+      const msg = `[notlm] miss annotate: custom semantic dim=${customDim} != base=${baseDim}; omitting custom layer`;
+      if (pack.strictCustom) {
+        throw new Error(msg);
+      }
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn(msg);
+      }
+      custom = null;
+    }
+  }
+  const layers = custom != null ? [base, custom] : [base];
   return clusters.map((c) => {
-    const hit = retrieveSemantic(c.centroid, index, {
-      minSimilarity: 0.99,
-      minTokenOverlap: 0.99,
+    // Use live accept bars only — weak candidates must not seed alias drafts.
+    const hit = retrieveSemantic(c.centroid, layers, {
+      minSimilarity: 0.55,
+      minTokenOverlap: 0.55,
     });
-    const top = hit.candidates[0];
-    if (!top) return c;
+    const top = hit.accepted;
+    if (!top || (top.kind !== 'faq' && top.kind !== 'query')) return c;
     return {
       ...c,
       nearest: {
@@ -153,6 +187,7 @@ export function draftFromMissClusters(
   const minCount = opts?.minCountForAlias ?? 1;
   const proposedFaqAliases: Record<string, string[]> = {};
   const proposedAliases: Record<string, string[]> = {};
+  const proposedQueryAliases: Record<string, string[]> = {};
   const proposedCorpus: MissClusterDraft['proposedCorpus'] = [];
   let singletonCount = 0;
 
@@ -172,7 +207,7 @@ export function draftFromMissClusters(
       continue;
     }
     if (nearest?.kind === 'query' && nearest.similarity >= 0.55) {
-      const list = (proposedAliases[nearest.id] ??= []);
+      const list = (proposedQueryAliases[nearest.id] ??= []);
       for (const m of c.members) {
         if (!list.includes(m)) list.push(m);
         proposedCorpus.push({
@@ -184,7 +219,10 @@ export function draftFromMissClusters(
     }
     // Unmapped — corpus rows for ranker OOD / refuse training.
     for (const m of c.members) {
-      proposedCorpus.push({ utterance: m, expect: { stepId: null } });
+      proposedCorpus.push({
+        utterance: m,
+        expect: { stepId: null, rawIntent: 'refuse' },
+      });
     }
   }
 
@@ -193,6 +231,7 @@ export function draftFromMissClusters(
     clusters,
     proposedFaqAliases,
     proposedAliases,
+    proposedQueryAliases,
     proposedCorpus,
     singletonCount,
   };

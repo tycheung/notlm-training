@@ -4,9 +4,11 @@ import {
   runStructuredExtract,
   type ControlInventory,
 } from '@notlm-training/mapper';
+import { resolvePackFolder } from '@notlm-training/author';
 import {
   pathExists,
   readJsonFile,
+  resolveActivePackDir,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
@@ -121,7 +123,7 @@ export async function cmdExtractHost(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const { home } = resolveNotlmHome(root);
+  const { home, projectRoot } = resolveNotlmHome(root);
   if (!pathExists(home)) {
     console.error(
       `Missing NotLM home: ${home}\nRun: notlmCLI init ${root}`
@@ -142,7 +144,7 @@ export async function cmdExtractHost(args: string[]): Promise<void> {
 
   await cmdExtractStatic([srcPath, root]);
 
-  const packDir = join(home, 'pack');
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
   const missing = PACK_REQUIRED.filter(
     (k) => !pathExists(join(packDir, `${k}.json`))
   );

@@ -46,6 +46,16 @@ function makeHome(): string {
     'utf8'
   );
   writeFileSync(join(home, 'pack', 'flow.json'), '[]', 'utf8');
+  writeFileSync(
+    join(home, 'pack', 'manifest.json'),
+    JSON.stringify({ id: 'test-cluster' }),
+    'utf8'
+  );
+  writeFileSync(
+    join(home, 'pack', 'intents.json'),
+    JSON.stringify({ aliases: {} }),
+    'utf8'
+  );
   return root;
 }
 
@@ -64,12 +74,21 @@ describe('misses cluster + pack embed-index', () => {
     await cmdMissesCluster(['--from', misses, root]);
     const drafts = join(root, '.notlm', 'drafts');
     const { readdirSync } = await import('node:fs');
-    const folders = readdirSync(drafts).filter((n) => n.startsWith('misses-cluster-'));
+    const folders = readdirSync(drafts).filter(
+      (n) => n.startsWith('misses-cluster-') && !n.startsWith('misses-cluster-fold-')
+    );
     expect(folders.length).toBe(1);
     const draft = JSON.parse(
       readFileSync(join(drafts, folders[0]!, 'draft.json'), 'utf8')
     ) as { clusters: unknown[] };
     expect(draft.clusters.length).toBeGreaterThan(0);
+    const folded = readdirSync(drafts).filter((n) =>
+      n.startsWith('misses-cluster-fold-')
+    );
+    expect(folded.length).toBe(1);
+    expect(
+      readdirSync(join(drafts, folded[0]!)).some((n) => n === 'faq.json')
+    ).toBe(true);
   });
 
   it('writes semantic-index.json', async () => {

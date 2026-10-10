@@ -1,6 +1,7 @@
 import {
   buildContextTreePlan,
   llmBatchGenerator,
+  resolvePackFolder,
   splitContextBatchGenerator,
   type BatchGenerator,
   type ScenarioCandidate,
@@ -8,12 +9,13 @@ import {
 } from '@notlm-training/author';
 import type { IntentParsePack } from '@notlm/core';
 import { createProviderFromEnv } from '@notlm-training/llm';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   ensureDir,
   loadPackFolderJson,
   pathExists,
   readJsonFile,
+  resolveActivePackDir,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
@@ -150,7 +152,10 @@ export type ScenarioPackContext = {
 
 /** Load pack + optional home JSON; returns null after setting exitCode if pack invalid. */
 function loadScenarioPackContext(home: string, args: string[]): ScenarioPackContext | null {
-  const files = loadPackFolderJson(home);
+  // `home` is the `.notlm` dir; host pack lives under its parent when nested pack is empty.
+  const projectRoot = dirname(home);
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const files = loadPackFolderJson(home, packDir);
   const productBlurb = resolveProductBlurb(args, files);
   const pack = asIntentPack(files);
   if (!pack) {

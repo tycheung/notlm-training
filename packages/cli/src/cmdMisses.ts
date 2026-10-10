@@ -12,10 +12,23 @@ import {
   buildExchangeDraft,
   clusterMissRecords,
   draftFromMissClusters,
+  writeFoldedPackDraft,
 } from '@notlm-training/recalibrate';
-import { buildSemanticIndex, type FaqEntry } from '@notlm/core';
+import { buildSemanticIndex, type FaqEntry, type SemanticIndex } from '@notlm/core';
+import {
+  loadPackJsonFromFolder,
+  resolvePackFolder,
+  writeCustomSemanticFromClusters,
+  writeSemanticBaseIndex,
+} from '@notlm-training/author';
 import { validateMissRecordList } from '@notlm/schema';
-import { draftsDir, loadPackFolderJson, pathExists, resolveNotlmHome } from './notlmHome.js';
+import {
+  draftsDir,
+  loadPackFolderJson,
+  pathExists,
+  resolveActivePackDir,
+  resolveNotlmHome,
+} from './notlmHome.js';
 import { FEEDBACK_PATH_FLAGS, positionalDir, takeFlag } from './cliFlags.js';
 
 function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: string): void {
@@ -28,10 +41,10 @@ function writeMissDump(records: ReturnType<typeof parseMissRecords>, outPath?: s
   }
 }
 
-function flowStepIds(home: string): Set<string> {
+function flowStepIds(home: string, packOverride?: string): Set<string> {
   const ids = new Set<string>();
   try {
-    const files = loadPackFolderJson(home);
+    const files = loadPackFolderJson(home, packOverride);
     const flow = files.flow;
     if (Array.isArray(flow)) {
       for (const s of flow) {
@@ -40,8 +53,12 @@ function flowStepIds(home: string): Set<string> {
         }
       }
     }
-  } catch {
-    /* optional pack */
+  } catch (err) {
+    process.stderr.write(
+      `[misses] flow step ids unavailable (${packOverride ?? 'default'}): ${
+        err instanceof Error ? err.message : String(err)
+      }\n`
+    );
   }
   return ids;
 }
@@ -56,7 +73,10 @@ function draftFromMissRecords(
 ): ReturnType<typeof buildExchangeDraft> {
   const proposedAliases: Record<string, string[]> = {};
   const proposedFaq: Array<{ id: string; aliases: string[]; text: string; stepId?: string }> = [];
-  const proposedCorpus: Array<{ utterance: string; expect: { stepId: string | null } }> = [];
+  const proposedCorpus: Array<{
+    utterance: string;
+    expect: { stepId: string | null; rawIntent?: string };
+  }> = [];
   const byKind = new Map<string, string[]>();
 
   for (const r of records) {
@@ -69,22 +89,43 @@ function draftFromMissRecords(
     const raw = (r.rawIntent ?? '').trim();
     const gotoFromRaw = raw.startsWith('goto:') ? raw.slice(5).trim() : '';
     const kind = String(r.kind);
-    const gotoLike =
-      kind === 'goto' ||
-      (gotoFromRaw && (stepIds.has(gotoFromRaw) || gotoFromRaw !== 'goto')) ||
-      stepIds.has(kind);
+    // Resolve goto from rawIntent `goto:<stepId>` or when miss kind is itself a step id.
+    const resolvedGoto =
+      (gotoFromRaw && stepIds.has(gotoFromRaw) ? gotoFromRaw : '') ||
+      (stepIds.has(kind) ? kind : '');
 
-    if (gotoLike) {
-      const stepId = gotoFromRaw || (stepIds.has(kind) ? kind : '_unknown_step');
-      (proposedAliases[stepId] ??= []).push(text);
+    if (resolvedGoto) {
+      const bucket = proposedAliases[resolvedGoto] ?? [];
+      if (!bucket.includes(text)) bucket.push(text);
+      proposedAliases[resolvedGoto] = bucket;
       proposedCorpus.push({
         utterance: text,
-        expect: { stepId: stepId === '_unknown_step' ? null : stepId },
+        expect: { stepId: resolvedGoto },
       });
       continue;
     }
 
-    proposedCorpus.push({ utterance: text, expect: { stepId: null } });
+    if (kind === 'goto' || gotoFromRaw) {
+      proposedCorpus.push({
+        utterance: text,
+        expect: { stepId: null, rawIntent: 'refuse' },
+      });
+      continue;
+    }
+
+    // Ambiguous / low-confidence — label kind so fold scenarios gate repair routing.
+    if (kind === 'ambiguous' || kind === 'low_confidence') {
+      proposedCorpus.push({
+        utterance: text,
+        expect: { stepId: null, rawIntent: kind },
+      });
+      continue;
+    }
+
+    proposedCorpus.push({
+      utterance: text,
+      expect: { stepId: null, rawIntent: 'refuse' },
+    });
   }
 
   return {
@@ -96,7 +137,7 @@ function draftFromMissRecords(
       ),
       metaCount: 0,
       refuseCount: proposedCorpus.filter((c) => c.expect.stepId === null).length,
-      unlabeledCount: records.length,
+      unlabeledCount: 0,
     },
     proposedAliases,
     proposedFaq,
@@ -125,23 +166,33 @@ export async function cmdMissesExport(args: string[]): Promise<void> {
 
 /**
  * GET a host miss-list endpoint, validate portable MissRecord[], write dump.
+ * Auth mirrors feedback pull: JWT → Bearer; else X-NotLM-Export-Token.
  */
 export async function cmdMissesPull(args: string[]): Promise<void> {
   const url = takeFlag(args, '--url');
   if (!url) {
-    console.error('Usage: notlm-training misses pull --url <endpoint> [--out <path>]');
+    console.error(
+      'Usage: notlm-training misses pull --url <endpoint> [--out <path>] [--token <export|jwt>]'
+    );
     process.exitCode = 1;
     return;
   }
   const outPath = takeFlag(args, '--out');
+  const token =
+    takeFlag(args, '--token')?.trim() ||
+    (process.env.NOTLM_MISSES_TOKEN || '').trim() ||
+    (process.env.NOTLM_MISSES_EXPORT_TOKEN || '').trim();
   const fetchFn = globalThis.fetch?.bind(globalThis);
   if (!fetchFn) {
     throw new Error('fetch is not available in this runtime');
   }
-  const res = await fetchFn(url, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) {
+    const looksLikeJwt = token.split('.').length === 3;
+    if (looksLikeJwt) headers.Authorization = `Bearer ${token}`;
+    else headers['X-NotLM-Export-Token'] = token;
+  }
+  const res = await fetchFn(url, { method: 'GET', headers });
   if (!res.ok) {
     throw new Error(`misses pull failed: HTTP ${res.status} ${res.statusText}`);
   }
@@ -170,35 +221,51 @@ export async function cmdMissesDraftAliases(args: string[]): Promise<void> {
     return;
   }
 
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
+  const activePack = resolveActivePackDir(home, projectRoot, resolvePackFolder);
 
   const raw = readFileSync(fromPath, 'utf8');
   let draft: Record<string, unknown>;
+  let exchanges: ReturnType<typeof parseMissExchanges> | null = null;
   try {
-    const exchanges = parseMissExchanges(raw);
-    if (exchanges.some(isMissExchange)) {
-      draft = buildExchangeDraft(exchanges as MissExchange[]) as Record<string, unknown>;
-      const byKind = new Map<string, string[]>();
-      for (const r of exchanges) {
-        const text = (r.text ?? '').trim();
-        if (!text) continue;
-        const list = byKind.get(r.kind) ?? [];
-        if (!list.includes(text)) list.push(text);
-        byKind.set(r.kind, list);
-      }
-      draft.byKind = Object.fromEntries(byKind);
-      draft.records = exchanges;
-    } else {
-      throw new Error('not exchanges');
+    exchanges = parseMissExchanges(raw);
+  } catch (err) {
+    const head = raw.slice(0, 2000);
+    const looksExchange = /"llmReply"\s*:|"proposed"\s*:/.test(head);
+    if (args.includes('--strict') || looksExchange) {
+      console.error(
+        `misses draft-aliases: exchange parse failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+      process.exitCode = 1;
+      return;
     }
-  } catch {
+    exchanges = null;
+  }
+  if (exchanges?.some(isMissExchange)) {
+    draft = buildExchangeDraft(exchanges as MissExchange[]) as Record<string, unknown>;
+    const byKind = new Map<string, string[]>();
+    for (const r of exchanges) {
+      const text = (r.text ?? '').trim();
+      if (!text) continue;
+      const list = byKind.get(r.kind) ?? [];
+      if (!list.includes(text)) list.push(text);
+      byKind.set(r.kind, list);
+    }
+    draft.byKind = Object.fromEntries(byKind);
+    draft.records = exchanges;
+  } else {
     const records = parseMissRecords(raw);
-    draft = draftFromMissRecords(records, flowStepIds(home)) as Record<string, unknown>;
+    draft = draftFromMissRecords(
+      records,
+      flowStepIds(home, activePack)
+    ) as Record<string, unknown>;
   }
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -228,26 +295,60 @@ export async function cmdMissesCluster(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
     return;
   }
 
+  const activePack = resolveActivePackDir(home, projectRoot, resolvePackFolder);
   const records = parseMissRecords(readFileSync(fromPath, 'utf8'));
   let clusters = clusterMissRecords(records);
   try {
-    const files = loadPackFolderJson(home);
+    const files = loadPackFolderJson(home, activePack);
     const faq = (files.faq as FaqEntry[] | undefined) ?? [];
-    const queries = (files.queries as Array<{ id: string; title: string; aliases: string[] }> | undefined) ?? [];
+    const qRaw = files.queries;
+    const queries = Array.isArray(qRaw)
+      ? (qRaw as Array<{ id: string; title: string; aliases: string[] }>)
+      : Array.isArray((qRaw as { queries?: unknown } | undefined)?.queries)
+        ? ((qRaw as { queries: Array<{ id: string; title: string; aliases: string[] }> })
+            .queries)
+        : [];
+    const baseRaw = files['semantic-index'];
+    const semanticIndex =
+      baseRaw &&
+      typeof baseRaw === 'object' &&
+      Array.isArray((baseRaw as { docs?: unknown }).docs) &&
+      (baseRaw as { docs: unknown[] }).docs.length > 0
+        ? (baseRaw as SemanticIndex)
+        : buildSemanticIndex({ faq, queries });
+    const customRaw = files['semantic-index.custom'];
+    const semanticIndexCustom =
+      customRaw &&
+      typeof customRaw === 'object' &&
+      Array.isArray((customRaw as { docs?: unknown }).docs)
+        ? (customRaw as SemanticIndex)
+        : undefined;
     clusters = annotateClustersWithPack(clusters, {
       faq,
       queries,
-      semanticIndex: buildSemanticIndex({ faq, queries }),
+      semanticIndex,
+      semanticIndexCustom,
+      strictCustom: args.includes('--strict-custom'),
     });
-  } catch {
-    /* pack optional */
+  } catch (err) {
+    const msg = `misses cluster: pack annotate failed: ${
+      err instanceof Error ? err.message : String(err)
+    }`;
+    // Default fail — use --lenient to warn-only (corrupt custom layer, etc.).
+    if (args.includes('--lenient')) {
+      console.warn(msg);
+    } else {
+      console.error(msg);
+      process.exitCode = 1;
+      return;
+    }
   }
 
   const draft = draftFromMissClusters(clusters);
@@ -261,33 +362,72 @@ export async function cmdMissesCluster(args: string[]): Promise<void> {
     `${JSON.stringify({ checked: false, kind: 'misses-cluster' }, null, 2)}\n`,
     'utf8'
   );
-  console.log(
-    `Miss clusters → ${outDir} (${clusters.length} clusters, ${records.length} records)`
-  );
+
+  const packDir = activePack;
+
+  let foldDir: string | null = null;
+  try {
+    foldDir = writeFoldedPackDraft(home, join(outDir, 'draft.json'), { packDir });
+  } catch (err) {
+    console.warn(
+      `Miss clusters → fold skipped: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+
+  // Feed System One custom layer with cluster paraphrases (does not touch base index).
+  const strictCustom = args.includes('--strict-custom');
+  try {
+    if (!pathExists(packDir)) {
+      throw new Error(`Missing pack folder: ${packDir}`);
+    }
+    const custom = writeCustomSemanticFromClusters(packDir, clusters);
+    console.log(
+      `Miss clusters → ${outDir} (${clusters.length} clusters, ${records.length} records); custom semantic → ${custom.path} (+${custom.docsAdded} docs, ${custom.docsTotal} total)${
+        foldDir ? `; folded → ${foldDir}` : ''
+      }`
+    );
+  } catch (err) {
+    console.warn(
+      `Miss clusters → ${outDir}${foldDir ? `; folded → ${foldDir}` : ''} but custom semantic failed: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+    // Soft by default so promote can continue to draft-aliases; --strict-custom for CI.
+    if (strictCustom) process.exitCode = 1;
+  }
 }
 
 /**
- * Build hashed n-gram semantic index from pack FAQ/query into pack/semantic-index.json.
+ * Build hashed n-gram **base** semantic index from pack FAQ/query →
+ * `pack/semantic-index.json`.
+ *
+ * Never writes `semantic-index.custom.json` (host/training overlay). Runtime
+ * combines both layers at live retrieve so regenerating base is safe.
  */
 export async function cmdPackEmbedIndex(args: string[]): Promise<void> {
   const dir = positionalDir(args, FEEDBACK_PATH_FLAGS);
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home}`);
     process.exitCode = 1;
     return;
   }
-  const files = loadPackFolderJson(home);
-  const faq = (files.faq as FaqEntry[] | undefined) ?? [];
-  const queries =
-    (files.queries as Array<{ id: string; title: string; aliases: string[] }> | undefined) ??
-    [];
-  const index = buildSemanticIndex({ faq, queries });
-  const packDir = join(home, 'pack');
-  mkdirSync(packDir, { recursive: true });
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  if (!pathExists(packDir)) {
+    console.error(`Missing pack folder under ${home}`);
+    process.exitCode = 1;
+    return;
+  }
+  const pack = loadPackJsonFromFolder(packDir);
+  const index = writeSemanticBaseIndex(packDir, pack);
   const outPath = join(packDir, 'semantic-index.json');
-  writeFileSync(outPath, `${JSON.stringify(index, null, 2)}\n`, 'utf8');
+  const customPath = join(packDir, 'semantic-index.custom.json');
+  const customNote = pathExists(customPath)
+    ? ' (left semantic-index.custom.json untouched)'
+    : ' (optional overlay: pack/semantic-index.custom.json)';
   console.log(
-    `Semantic index → ${outPath} (${index.docs.length} docs, dim=${index.dim})`
+    `Semantic base index → ${outPath} (${index.docs.length} docs, dim=${index.dim})${customNote}`
   );
 }

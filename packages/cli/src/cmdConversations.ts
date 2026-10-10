@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { analyzeConversations } from '@notlm-training/author';
+import { analyzeConversations, resolvePackFolder } from '@notlm-training/author';
 import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   validateConversationRecordList,
@@ -12,7 +12,12 @@ import {
   writeConversationFoldDraft,
 } from '@notlm-training/recalibrate';
 import { cmdPackAccept } from './cmdPackIntents.js';
-import { loadPackFolderJson, resolveNotlmHome } from './notlmHome.js';
+import { exited } from './cliExit.js';
+import {
+  loadPackFolderJson,
+  resolveActivePackDir,
+  resolveNotlmHome,
+} from './notlmHome.js';
 import { positionalDir, takeFlag } from './cliFlags.js';
 
 const CONVERSATION_DIR_FLAGS = new Set(['--from', '--mode']);
@@ -79,7 +84,7 @@ export async function cmdConversationsAnalyze(
     args.includes('--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
 
   const dir = positionalDir(args, CONVERSATION_DIR_FLAGS) ?? process.cwd();
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
     mkdirSync(join(home, 'pack'), { recursive: true });
@@ -92,7 +97,8 @@ export async function cmdConversationsAnalyze(
     return { ok: false };
   }
 
-  const files = loadPackFolderJson(home);
+  const activePack = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const files = loadPackFolderJson(home, activePack);
   const flow = Array.isArray(files.flow) ? files.flow : [];
   const flowSteps = flow
     .filter((s): s is Record<string, unknown> => s != null && typeof s === 'object')
@@ -144,7 +150,7 @@ export async function cmdConversationsAnalyze(
       proposedCorpus: result.proposal.proposedCorpus,
       conversations,
     },
-    { checked: mode === 'auto' }
+    { checked: mode === 'auto', packDir: activePack }
   );
 
   console.log(`Conversation proposal → ${proposalDir}`);
@@ -152,6 +158,12 @@ export async function cmdConversationsAnalyze(
 
   if (mode === 'auto') {
     await cmdPackAccept(draftId, dir);
+    if (exited()) {
+      console.error(
+        `Auto-accept failed; pack unchanged. Fix the draft then: notlm-training pack accept ${draftId}`
+      );
+      return { ok: true, accepted: false, draftId, dir };
+    }
     console.log(
       'Auto-accepted. Next: run `notlmCLI intents check` on the project to gate scenarios.'
     );

@@ -29,8 +29,20 @@ function asSteps(flow: unknown): FlowStep[] {
   return Array.isArray(flow) ? (flow as FlowStep[]) : [];
 }
 
+function unwrapCatalog(raw: unknown, key: string): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    Array.isArray((raw as Record<string, unknown>)[key])
+  ) {
+    return (raw as Record<string, unknown>)[key] as unknown[];
+  }
+  return [];
+}
+
 function faqList(faq: unknown): FaqEntry[] {
-  return Array.isArray(faq) ? (faq as FaqEntry[]) : [];
+  return unwrapCatalog(faq, 'faq') as FaqEntry[];
 }
 
 function shortPhrase(raw: string, max = 48): string {
@@ -80,8 +92,8 @@ function collectLabeled(home: string): {
     }
   };
 
-  ingest(scenariosRaw, 'scenarios');
-  ingest(corpusRaw, 'corpus');
+  ingest(unwrapCatalog(scenariosRaw, 'scenarios'), 'scenarios');
+  ingest(unwrapCatalog(corpusRaw, 'corpus'), 'corpus');
 
   // Capability catalogs → labeled rows from aliases.
   const capabilityFiles = [
@@ -92,9 +104,9 @@ function collectLabeled(home: string): {
   ] as const;
   for (const [file, key, expectKey] of capabilityFiles) {
     const raw = loadPackJson(home, file);
-    if (!raw || typeof raw !== 'object') continue;
-    const list = (raw as Record<string, unknown>)[key];
-    if (!Array.isArray(list)) continue;
+    if (raw == null) continue;
+    const list = unwrapCatalog(raw, key);
+    if (!list.length) continue;
     for (const entry of list) {
       if (!entry || typeof entry !== 'object') continue;
       const e = entry as { id?: string; aliases?: string[]; title?: string };
@@ -115,26 +127,34 @@ function collectLabeled(home: string): {
     }
   }
 
-  const draftPath = join(home, 'drafts', 'capability-synth-20260929', 'utterances.json');
-  if (existsSync(draftPath)) {
-    try {
-      const draft = JSON.parse(readFileSync(draftPath, 'utf8')) as {
-        rows?: Array<{ utterance?: string; label?: ScenarioExpect & { ood?: boolean } }>;
-      };
-      for (const row of draft.rows ?? []) {
-        const utterance = typeof row.utterance === 'string' ? row.utterance.trim() : '';
-        if (!utterance || !row.label) continue;
-        const expect: ScenarioExpect = { ...row.label };
-        if (row.label.ood) expect.rawIntent = 'refuse';
-        byUtterance.set(utterance.toLowerCase(), {
-          utterance,
-          expect,
-          source: 'corpus',
-        });
-        corpusCount += 1;
+  // Opt-in only — never silently merge a dated host workshop draft into Laya.
+  const synthRel = process.env.NOTLM_LAYA_INCLUDE_SYNTH?.trim();
+  if (synthRel) {
+    const draftPath = join(home, 'drafts', synthRel, 'utterances.json');
+    if (existsSync(draftPath)) {
+      try {
+        const draft = JSON.parse(readFileSync(draftPath, 'utf8')) as {
+          rows?: Array<{
+            utterance?: string;
+            label?: ScenarioExpect & { ood?: boolean };
+          }>;
+        };
+        for (const row of draft.rows ?? []) {
+          const utterance =
+            typeof row.utterance === 'string' ? row.utterance.trim() : '';
+          if (!utterance || !row.label) continue;
+          const expect: ScenarioExpect = { ...row.label };
+          if (row.label.ood) expect.rawIntent = 'refuse';
+          byUtterance.set(utterance.toLowerCase(), {
+            utterance,
+            expect,
+            source: 'corpus',
+          });
+          corpusCount += 1;
+        }
+      } catch {
+        /* ignore bad draft */
       }
-    } catch {
-      /* ignore bad draft */
     }
   }
 
@@ -293,11 +313,8 @@ export function recordsFromPack(
     ['search.json', 'search'],
   ] as const) {
     const raw = loadPackJson(home, file);
-    const list =
-      raw && typeof raw === 'object'
-        ? (raw as Record<string, unknown>)[key]
-        : null;
-    if (!Array.isArray(list)) continue;
+    const list = unwrapCatalog(raw, key);
+    if (!list.length) continue;
     const prefix =
       key === 'queries'
         ? 'query'

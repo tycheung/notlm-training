@@ -27,7 +27,13 @@ const SCENARIO_VALUE_FLAGS = new Set([
 ]);
 
 /** Flags that take a following path/value in feedback/misses commands. */
-export const FEEDBACK_PATH_FLAGS = new Set(['--from', '--out', '--url']);
+export const FEEDBACK_PATH_FLAGS = new Set([
+  '--from',
+  '--out',
+  '--url',
+  '--token',
+  '--exchanges-url',
+]);
 
 /**
  * First non-flag positional.

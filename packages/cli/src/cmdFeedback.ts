@@ -1,3 +1,4 @@
+import { resolvePackFolder } from '@notlm-training/author';
 import { cmdPull, cmdDraft, cmdFold, cmdMetrics, takeFlag } from './cli.js';
 import { cmdConversationsAnalyze, cmdConversationsPull } from './cmdConversations.js';
 import {
@@ -7,28 +8,70 @@ import {
   cmdMissesPull,
   cmdPackEmbedIndex,
 } from './cmdMisses.js';
-import { cmdRankerTrain } from './cmdRanker.js';
 import { cmdScenariosSaturate } from './cmdScenarios.js';
 import { cmdPackAccept } from './commands.js';
 import { hasFlag } from './cliFlags.js';
 import { exited } from './cliExit.js';
+import { cmdFeedbackPromote } from './cmdFeedbackPromote.js';
+import { runPipelinePost, wantsLaya } from './pipelinePost.js';
+import { resolveActivePackDir, resolveNotlmHome } from './notlmHome.js';
+
+const FEEDBACK_SUBS = new Set([
+  'promote',
+  'pull',
+  'draft',
+  'fold',
+  'metrics',
+  'conversations',
+  'misses',
+  'embed-index',
+  'accept',
+  'run',
+  'help',
+  '--help',
+]);
+
+function printFeedbackHelp(): void {
+  console.log(`Usage (entry point):
+  notlm-training feedback [dir] [--url=…] [--from=misses.json]
+    # promote: pull misses → cluster → draft-aliases (no pack merge)
+    # post (embed/ranker) runs on: feedback accept <draftId>
+    # optional: --post to run post on current pack without accepting drafts
+
+Advanced subcommands:
+  notlm-training feedback promote|pull|draft|fold|metrics|accept|run|conversations|misses|embed-index …
+`);
+}
 
 export async function cmdFeedback(args: string[]): Promise<void> {
   const sub = args[0];
   const rest = args.slice(1);
 
-  if (!sub || sub === 'help' || sub === '--help') {
-    console.log(`Usage:
-  notlm-training feedback pull --url <endpoint> [--out <path>]
-  notlm-training feedback draft --from <file> [dir]
-  notlm-training feedback fold --from <draft.json> [dir]
-  notlm-training feedback conversations pull|analyze …
-  notlm-training feedback misses pull|export|draft-aliases|cluster …
-  notlm-training feedback embed-index [dir]
-  notlm-training feedback metrics --from <exchanges.json>
-  notlm-training feedback accept <draftId> [dir]
-  notlm-training feedback run --from <conv.json> [dir] [--mode=review|auto] [--branch-out] [--fixture]
-`);
+  if (sub === 'help' || sub === '--help') {
+    printFeedbackHelp();
+    return;
+  }
+
+  // Default promote: no sub, promote, or flags/path only.
+  if (!sub || sub === 'promote' || sub.startsWith('--')) {
+    const promoteArgs = sub === 'promote' ? rest : args;
+    await cmdFeedbackPromote(promoteArgs);
+    return;
+  }
+
+  // Bare path as first arg → promote with that dir.
+  if (
+    !FEEDBACK_SUBS.has(sub) &&
+    (sub.includes('/') || sub.includes('\\') || sub === '.' || sub.startsWith('..'))
+  ) {
+    await cmdFeedbackPromote(args);
+    return;
+  }
+
+  if (!FEEDBACK_SUBS.has(sub)) {
+    console.error(`Unknown feedback subcommand: ${sub}`);
+    printFeedbackHelp();
+    process.exitCode = 1;
     return;
   }
 
@@ -84,7 +127,18 @@ export async function cmdFeedback(args: string[]): Promise<void> {
     }
     await cmdPackAccept(draftId, dir);
     if (exited()) return;
-    await cmdRankerTrain(dir ? [dir] : []);
+    const { home, projectRoot } = resolveNotlmHome(dir);
+    // Soft ranker: FAQ/query-only accepts must not fail after pack merge when
+    // there is no trainable goto surface (requireRanker stays for train --force-ranker).
+    const post = await runPipelinePost({
+      home,
+      packDir: resolveActivePackDir(home, projectRoot, resolvePackFolder),
+      projectRoot,
+      forceRanker: true,
+      laya: wantsLaya(rest),
+      layaDryRun: hasFlag(rest, '--laya-dry-run') || hasFlag(rest, '--dry-run'),
+    });
+    if (!post.ok) process.exitCode = 1;
     return;
   }
   if (sub === 'run') {
@@ -96,9 +150,18 @@ export async function cmdFeedback(args: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
+    // Peek mode before analyze consumes --mode (do not key skip logs on exitCode).
+    const modeEq = rest.find((a) => a.startsWith('--mode='));
+    const modeIdx = rest.indexOf('--mode');
+    const modeRaw =
+      (modeEq ? modeEq.slice('--mode='.length) : undefined) ||
+      (modeIdx >= 0 && rest[modeIdx + 1] && !rest[modeIdx + 1]!.startsWith('-')
+        ? rest[modeIdx + 1]
+        : undefined) ||
+      'review';
     const analyzed = await cmdConversationsAnalyze(rest);
     if (!analyzed.ok) {
-      // analyze already set exitCode / logged errors — do not ranker or branch-out.
+      console.log('feedback → run aborted (conversation analyze failed)');
       return;
     }
     if (hasFlag(rest, '--branch-out')) {
@@ -112,10 +175,23 @@ export async function cmdFeedback(args: string[]): Promise<void> {
       }
     }
     if (analyzed.accepted) {
-      await cmdRankerTrain(analyzed.dir ? [analyzed.dir] : []);
+      const { home, projectRoot } = resolveNotlmHome(analyzed.dir);
+      const post = await runPipelinePost({
+        home,
+        packDir: resolveActivePackDir(home, projectRoot, resolvePackFolder),
+        projectRoot,
+        forceRanker: true,
+        laya: wantsLaya(rest),
+        layaDryRun: hasFlag(rest, '--laya-dry-run') || hasFlag(rest, '--dry-run'),
+      });
+      if (!post.ok) process.exitCode = 1;
+    } else if (modeRaw === 'auto') {
+      console.log(
+        'feedback → skip post (auto-accept failed; pack unchanged)'
+      );
     } else {
       console.log(
-        'feedback → skip ranker (review mode; pack unchanged until accept)'
+        'feedback → skip post (review mode; pack unchanged until accept)'
       );
     }
     return;

@@ -15,6 +15,7 @@
     "@notlm/core": "*",
     "@notlm-training/laya-train": "*",
     "@notlm-training/llm": "*",
+    "@notlm-training/ranker-train": "*",
     "@notlm/schema": "*"
   },
   "scripts": {

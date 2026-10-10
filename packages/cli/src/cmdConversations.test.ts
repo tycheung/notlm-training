@@ -1,11 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cpSync, mkdtempSync, readFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  existsSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   cmdConversationsAnalyze,
   cmdConversationsPull,
 } from './cmdConversations.js';
+import * as packIntents from './cmdPackIntents.js';
 import { initNotlmHomeForTests } from './testInitNotlmHome.js';
 import { pathExists, resolveNotlmHome } from './notlmHome.js';
 import { runCli } from './cli.js';
@@ -150,13 +159,68 @@ describe('cmdConversationsAnalyze', () => {
     );
 
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    await cmdConversationsAnalyze(['--from', from, root, '--mode=auto', '--fixture']);
+    const result = await cmdConversationsAnalyze([
+      '--from',
+      from,
+      root,
+      '--mode=auto',
+      '--fixture',
+    ]);
     expect(process.exitCode ?? 0).toBe(0);
+    expect(result).toMatchObject({ ok: true, accepted: true });
 
     const intents = JSON.parse(
       readFileSync(join(home, 'pack', 'intents.json'), 'utf8')
     ) as { aliases?: Record<string, string[]> };
     expect(intents.aliases?.create_list).toContain('please spawn a list');
+  });
+
+  it('auto mode reports accepted=false when pack accept fails', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'notlm-conv-accept-fail-'));
+    const home = join(root, '.notlm');
+    mkdirSync(join(home, 'pack'), { recursive: true });
+    writeFileSync(
+      join(home, 'pack', 'manifest.json'),
+      JSON.stringify({ id: 't' }),
+      'utf8'
+    );
+    writeFileSync(
+      join(home, 'pack', 'intents.json'),
+      JSON.stringify({ aliases: { create_list: ['new list'] } }),
+      'utf8'
+    );
+    writeFileSync(join(home, 'pack', 'faq.json'), '[]', 'utf8');
+    writeFileSync(join(home, 'pack', 'corpus.json'), '[]', 'utf8');
+    writeFileSync(join(home, 'pack', 'flow.json'), '[]', 'utf8');
+
+    const from = join(home, 'conv-fail.json');
+    writeFileSync(
+      from,
+      JSON.stringify([
+        {
+          conversationId: 'c1',
+          startedAt: '2026-01-01T00:00:00.000Z',
+          turns: [sampleTurn],
+        },
+      ]),
+      'utf8'
+    );
+
+    vi.spyOn(packIntents, 'cmdPackAccept').mockImplementation(async () => {
+      process.exitCode = 1;
+    });
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await cmdConversationsAnalyze([
+      '--from',
+      from,
+      root,
+      '--mode=auto',
+      '--fixture',
+    ]);
+    expect(result).toMatchObject({ ok: true, accepted: false });
+    expect(process.exitCode).toBe(1);
   });
 });
 
@@ -164,8 +228,8 @@ describe('runCli conversations routing', () => {
   it('mentions conversations in help', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await runCli(['help']);
-    expect(log.mock.calls.some((c) => String(c[0]).includes('feedback conversations'))).toBe(
-      true
-    );
+    expect(
+      log.mock.calls.some((c) => String(c[0]).includes('conversations'))
+    ).toBe(true);
   });
 });

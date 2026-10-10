@@ -14,10 +14,12 @@ import {
 } from '@notlm-training/author';
 import {
   resolveNotlmHome,
+  resolveActivePackDir,
   pathExists,
   ensureDir,
 } from './notlmHome.js';
 import { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
+import { runPipelinePost, wantsLaya } from './pipelinePost.js';
 
 export async function cmdE2eAuto(args: string[]): Promise<void> {
   const dir = positionalDir(args);
@@ -28,9 +30,7 @@ export async function cmdE2eAuto(args: string[]): Promise<void> {
     return;
   }
 
-  const packDir = resolvePackFolder(
-    pathExists(join(home, 'pack', 'manifest.json')) ? home : projectRoot
-  );
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
   if (!pathExists(join(packDir, 'manifest.json'))) {
     console.error(`Missing pack manifest under ${packDir}`);
     process.exitCode = 1;
@@ -103,8 +103,19 @@ export async function cmdE2eAuto(args: string[]): Promise<void> {
       lessonsSinceRanker = 0;
       try {
         const { cmdRankerTrain } = await import('./cmdRanker.js');
+        const { exited } = await import('./cliExit.js');
         console.log(`e2eauto ranker retrain after lesson ${lesson}`);
+        const prevExit = process.exitCode;
+        process.exitCode = 0;
         await cmdRankerTrain([projectRoot]);
+        if (exited()) {
+          console.warn(
+            `e2eauto ranker retrain failed (exit ${process.exitCode}); continuing`
+          );
+          process.exitCode = prevExit ?? 0;
+        } else if (prevExit) {
+          process.exitCode = prevExit;
+        }
       } catch (err) {
         console.warn(
           `e2eauto ranker retrain skipped: ${
@@ -115,10 +126,23 @@ export async function cmdE2eAuto(args: string[]): Promise<void> {
     },
   });
 
+  let postFailed = false;
+  if (writePack && !hasFlag(args, '--skip-post')) {
+    const post = await runPipelinePost({
+      home,
+      packDir,
+      projectRoot,
+      forceRanker: report.lessons > 0,
+      laya: wantsLaya(args),
+      layaDryRun: hasFlag(args, '--laya-dry-run') || hasFlag(args, '--dry-run'),
+    });
+    if (!post.ok) postFailed = true;
+  }
+
   console.log(
     JSON.stringify(
       {
-        ok: report.ok,
+        ok: report.ok && !postFailed,
         stopReason: report.stopReason,
         rounds: report.rounds,
         lessons: report.lessons,
@@ -130,7 +154,7 @@ export async function cmdE2eAuto(args: string[]): Promise<void> {
       2
     )
   );
-  if (!report.ok && report.stopReason !== 'all_correct') {
+  if (postFailed || (!report.ok && report.stopReason !== 'all_correct')) {
     process.exitCode = 1;
   }
 }

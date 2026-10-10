@@ -4,8 +4,9 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { LlmProvider } from '@notlm-training/llm';
-import type { PackJsonInput } from '@notlm/core';
+import { buildSemanticIndex, type PackJsonInput } from '@notlm/core';
 import { extractJsonText, parseModelJson } from '../parseModelJson.js';
+import { semanticSourceDigest } from '../pipeline/drift.js';
 import { lanePatchPrePrompt } from './lanes.js';
 import { catalogDigest } from './packLoad.js';
 import type { SuiteSummary } from './score.js';
@@ -272,7 +273,30 @@ export function applyPackPatch(pack: PackJsonInput, patch: PackPatch): PackJsonI
   return pack;
 }
 
-/** Persist pack JSON pieces updated by the auto loop. */
+/**
+ * Rebuild **base** `semantic-index.json` from pack FAQ/queries.
+ * Never touches `semantic-index.custom.json` (training overlay).
+ */
+export function writeSemanticBaseIndex(
+  packDir: string,
+  pack: PackJsonInput
+): ReturnType<typeof buildSemanticIndex> & { layer: 'base'; sourceDigest: string } {
+  mkdirSync(packDir, { recursive: true });
+  const sourceDigest = semanticSourceDigest(pack);
+  const index = {
+    ...buildSemanticIndex({ faq: pack.faq, queries: pack.queries }),
+    layer: 'base' as const,
+    sourceDigest,
+  };
+  writeFileSync(
+    join(packDir, 'semantic-index.json'),
+    `${JSON.stringify(index, null, 2)}\n`,
+    'utf8'
+  );
+  return index;
+}
+
+/** Persist pack JSON pieces updated by the auto / e2eauto loops. */
 export function writePackFolder(packDir: string, pack: PackJsonInput): void {
   mkdirSync(packDir, { recursive: true });
   const write = (name: string, data: unknown) => {
@@ -286,6 +310,7 @@ export function writePackFolder(packDir: string, pack: PackJsonInput): void {
   if (pack.search) write('search.json', { search: pack.search });
   if (pack.heuristics) write('heuristics.json', pack.heuristics);
   if (pack.normalize) write('normalize.json', pack.normalize);
+  // Semantic index rebuild is decided by pipeline drift heuristics (not every write).
 }
 
 export function writeAutoReport(outDir: string, report: unknown): void {

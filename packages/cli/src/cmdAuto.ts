@@ -21,15 +21,17 @@ import {
 import { cmdRankerTrain } from './cmdRanker.js';
 import {
   resolveNotlmHome,
+  resolveActivePackDir,
   pathExists,
   loadPackFolderJson,
   ensureDir,
 } from './notlmHome.js';
 import { takeFlag, hasFlag, positionalDir } from './cliFlags.js';
+import { runPipelinePost, wantsLaya } from './pipelinePost.js';
 
 /** Seed E2E + glossary drafts once per home (idempotent). */
-function seedAuthoringArtifacts(home: string): void {
-  const files = loadPackFolderJson(home);
+function seedAuthoringArtifacts(home: string, packDir: string): void {
+  const files = loadPackFolderJson(home, packDir);
   const flow = Array.isArray(files.flow) ? (files.flow as FlowStepDef[]) : [];
   if (flow.length) {
     const e2ePath = join(home, 'e2e-scenarios.json');
@@ -59,11 +61,8 @@ export async function cmdAuto(args: string[]): Promise<void> {
     return;
   }
 
-  seedAuthoringArtifacts(home);
-
-  const packDir = resolvePackFolder(
-    pathExists(join(home, 'pack', 'manifest.json')) ? home : projectRoot
-  );
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  seedAuthoringArtifacts(home, packDir);
   if (!pathExists(join(packDir, 'manifest.json'))) {
     console.error(`Missing pack manifest under ${packDir}`);
     process.exitCode = 1;
@@ -130,10 +129,24 @@ export async function cmdAuto(args: string[]): Promise<void> {
     onLog: (msg) => console.log(msg),
   });
 
+  // Drift-gated embed/ranker (+ optional --laya=1). Prefer `train` for full pipeline.
+  let postFailed = false;
+  if (writePack && !hasFlag(args, '--skip-post')) {
+    const post = await runPipelinePost({
+      home,
+      packDir,
+      projectRoot,
+      forceRanker: report.rounds > 0 && report.final.hardFails === 0,
+      laya: wantsLaya(args),
+      layaDryRun: hasFlag(args, '--laya-dry-run') || hasFlag(args, '--dry-run'),
+    });
+    if (!post.ok) postFailed = true;
+  }
+
   console.log(
     JSON.stringify(
       {
-        ok: report.ok,
+        ok: report.ok && !postFailed,
         stopReason: report.stopReason,
         rounds: report.rounds,
         passRate: report.final.passRate,
@@ -145,7 +158,7 @@ export async function cmdAuto(args: string[]): Promise<void> {
       2
     )
   );
-  if (!report.ok) process.exitCode = 1;
+  if (postFailed || !report.ok) process.exitCode = 1;
 }
 
 /** Explicit ranker refresh (nightly / after pack growth). */

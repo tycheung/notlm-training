@@ -10,7 +10,7 @@ The browser/runtime packages live in the sibling **`notlm`** repo. This repo nev
 | `@notlm-training/llm` | Server-side LLM providers for authoring (env-configured) |
 | `@notlm-training/mapper` | Static extract, inventory crawl, control map drafts |
 | `@notlm-training/recalibrate` | MissExchange / conversation fold drafts; **miss clustering** → alias/ranker candidates |
-| Semantic index | `pack embed-index` builds hashed n-gram FAQ/query index for runtime System One retrieve |
+| Semantic index | `pack embed-index` writes **base** `pack/semantic-index.json` only; optional `semantic-index.custom.json` overlay is never overwritten |
 | `@notlm-training/ranker-train` | Train `ranker.json` (+ optional ONNX) |
 | `@notlm-training/laya-train` | Convert pack → Laya JSONL; local fine-tune bridge |
 | `@notlm-training/codegen` | Checklist / jobs helpers |
@@ -35,87 +35,50 @@ Initialize a host app once with the runtime CLI:
 npx notlmCLI init ./my-app
 ```
 
-## Product modes
+## Two entry points
 
-### `auto` — capability stress (13 lanes)
+Most decisions (ranker retrain, semantic-index rebuild) are **heuristic / drift-gated**.
+Laya is optional and only runs when you pass `--laya=1`.
 
-Grow pack language surfaces until hard fails are gone and pass-rate meets the target (default **0.999**). Default generation size is **5000 utterances × 13 lanes**.
+| Entry | Command | Pipeline |
+|-------|---------|----------|
+| **Grow** | `train` | `auto` (13-lane stress) → `e2eauto` → post |
+| **Promote** | `feedback` | pull misses → cluster → draft-aliases (+ custom semantic); post on **accept** |
 
-```bash
-npx notlm-training auto ./my-app --per-lane=5000 --pass-rate=0.999
-npx notlm-training auto ./my-app --fixture --per-lane=5 --pass-rate=0.5
-npx notlm-training auto ./my-app --lanes=faq,goto,ood --per-lane=100
-npx notlm-training auto ranker ./my-app   # retrain pack/ranker.json
-```
-
-Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`, `tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
-
-### `e2eauto` — browser-free audit / NLU learning loop
-
-Emulates the live Assistant QA audit **without** browser automation: load host
-scenario banks (`faq-scenarios.json`, `cb-handoff-scenarios.json`, …), evaluate
-each utterance with production System One gates (`matchStrongFaqEntry` + parse +
-OOD), grade Correct / Partly / Wrong / NoReply / LayaRisk, **checkpoint** the
-host pack, then learn (append aliases to the **expected** FAQ/step) and continue.
-
-Writes **only** the host `.notlm/` tree (pack + scenario banks). Never sealed
-`notlm/packs/`. Faster than Playwright; suitable for continuous overnight runs.
+**Post** (shared): rebuild `pack/semantic-index.json` only if FAQ/query source digest drifted; retrain `ranker.json` if alias/corpus digest drifted (or `--force-ranker`); run Laya convert/train only if `--laya=1`. Digests stamp only on success. Miss clustering **appends** paraphrase docs to `semantic-index.custom.json` (never overwrites base). State: `.notlm/pipeline-state.json`.
 
 ```bash
-# One pass over Victory host scenarios (stop when queue done)
-npx notlm-training e2eauto ../react-frontend --fixture --once --max-lessons=50
+# Grow System One coverage (fixture = no live LLM)
+npx notlm-training train ../react-frontend --fixture --per-lane=5 --pass-rate=0.5
+npx notlm-training train ../react-frontend --fixture --laya=1 --laya-dry-run
+# Failed phases stop the run; pass --continue-on-error to proceed anyway.
 
-# Endless until micro-F1 >= 0.95 (FP/FN aware); checkpoint every lesson
-npx notlm-training e2eauto ../react-frontend --fixture --max-rounds=0 --min-f1=0.95 --min-f1-cases=40
-
-# Optional ranker retrain every N lessons
-npx notlm-training e2eauto ../react-frontend --fixture --once --retrain-ranker-every=5
+# Promote from production misses (drafts stay accept-gated; post runs on accept)
+npx notlm-training feedback ../react-frontend --url "$NOTLM_MISSES_URL" --token "$NOTLM_MISSES_TOKEN"
+npx notlm-training feedback ../react-frontend --from misses.json
+# after review:
+npx notlm-training feedback accept <draftId> ../react-frontend
+# optional: feedback … --post  # run embed/ranker on current pack without accepting
 ```
 
-F1 uses `@notlm/core` `metricsF1` (precision/recall from TP/FP/FN on strong FAQ /
-OOD / step labels). LLM morph/patch needs `NOTLM_LLM_*` (ollama / openai /
-anthropic / huggingface / openai-compat) — Cursor Composer is **not** an HTTP
-provider; use `--fixture` for deterministic alias learning without an API key.
+Legacy phase commands still work (`auto`, `e2eauto`, `misses …`, `pack embed-index`, …) and print a hint to prefer `train` / `feedback`.
 
-Artifacts: `.notlm/train-e2eauto/{state.json,report.json,grades.jsonl,checkpoint/<n>/}`.
+### Semantic index: base vs custom
 
-Host knobs (optional) in `.notlm/config.json`:
+| File under `.notlm/pack/` | Role |
+|---------------------------|------|
+| `semantic-index.json` | **Base** — hashed n-grams from FAQ + queries. Rebuilt on **drift** (or `pack embed-index`). |
+| `semantic-index.custom.json` | **Custom** — miss/training overlay. **Never** overwritten by train/feedback/embed-index. |
 
-```json
-{
-  "e2eauto": {
-    "sources": ["faq-scenarios.json", "cb-handoff-scenarios.json"],
-    "fixture": true,
-    "checkpointEvery": 1,
-    "minF1": 0.95,
-    "minF1Cases": 40,
-    "retrainRankerEvery": 5
-  }
-}
-```
+Runtime combines both layers at live retrieve.
 
-### `feedback` — logs → pack drafts
+### Legacy phase details
 
-```bash
-npx notlm-training feedback pull --url …/notlm/misses?exchanges_only=true --out ex.json
-npx notlm-training feedback draft --from ex.json ./my-app
-npx notlm-training feedback fold --from .notlm/drafts/exchanges-…/draft.json ./my-app
-npx notlm-training feedback accept <draftId> ./my-app
+**`auto`** — 13-lane capability stress (default 5000×13). Lanes: `faq`, `goto`, `query`, `mutation`, `mutation_high_risk`, `context`, `tour`, `search`, `compare`, `handoff`, `audit`, `ood`, `disambiguation`.
 
-npx notlm-training feedback conversations pull --url … --out conv.json
-npx notlm-training feedback conversations analyze --from conv.json ./my-app --mode=review
-npx notlm-training feedback run --from conv.json ./my-app --mode=auto
+**`e2eauto`** — browser-free audit/learn on host scenario banks; F1 stop; checkpoints under `.notlm/train-e2eauto/`. Prefer via `train` (defaults to `--once` for the e2e phase).
 
-npx notlm-training feedback misses pull|export|draft-aliases|cluster …
-# Cluster production misses → proposed FAQ/query aliases + ranker corpus
-npx notlm-training misses cluster --from misses.json ../react-frontend
-# Build pack/semantic-index.json (hashed n-grams) for System One semantic retrieve
-npx notlm-training pack embed-index ../react-frontend
-npx notlm-training feedback embed-index ../react-frontend
-npx notlm-training feedback metrics --from ex.json
-```
-
-`feedback accept` copies a checked draft into `.notlm/pack/` and retrains the ranker. Unchecked drafts are refused unless `NOTLM_FORCE_ACCEPT=1`.
+**`feedback` subcommands** — `pull` / `draft` / `fold` / `accept` / `run` / `conversations` / `misses` / `embed-index` remain for surgical use. Unchecked drafts refuse accept unless `NOTLM_FORCE_ACCEPT=1`.
 
 ## Authoring
 

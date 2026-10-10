@@ -1,11 +1,15 @@
 import { join } from 'node:path';
-import { draftConversationalCopy } from '@notlm-training/author';
+import {
+  draftConversationalCopy,
+  resolvePackFolder,
+} from '@notlm-training/author';
 import { createProviderFromEnv } from '@notlm-training/llm';
 import {
   draftsDir,
   ensureDir,
   loadPackFolderJson,
   pathExists,
+  resolveActivePackDir,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
@@ -18,7 +22,7 @@ function stamp(): string {
 /** Drafts replies.json + FAQ + slot asks under drafts/ (build-time only). */
 export async function cmdTalkDraft(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('-'));
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
@@ -26,7 +30,8 @@ export async function cmdTalkDraft(args: string[]): Promise<void> {
   }
 
   const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
-  const files = loadPackFolderJson(home);
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const files = loadPackFolderJson(home, packDir);
   const flow = Array.isArray(files.flow) ? files.flow : [];
   const stepTitles = flow
     .filter((s): s is { id: string; title: string } =>

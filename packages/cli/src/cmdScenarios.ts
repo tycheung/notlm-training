@@ -1,6 +1,7 @@
 import {
   faqDraftFromSoftLabels,
   mineIntentFailures,
+  resolvePackFolder,
   runHardAugment,
   runSaturationLoop,
   scoreBatchAgainstPrior,
@@ -9,11 +10,13 @@ import {
 } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
 import { createProviderFromEnv } from '@notlm-training/llm';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { checkIntentsInputFromFiles } from './checkIntentsPack.js';
 import {
   draftsDir,
   ensureDir,
   pathExists,
+  resolveActivePackDir,
   writeJsonFile,
 } from './notlmHome.js';
 import {
@@ -214,15 +217,12 @@ export async function cmdScenariosSaturate(args: string[]): Promise<void> {
   }
 
   if (Array.isArray(files.scenarios) && files.manifest && files.flow && files.intents) {
+    const packPath = resolveActivePackDir(home, dirname(home), resolvePackFolder);
+    const input = checkIntentsInputFromFiles(files, packPath);
     const check = checkIntents({
-      pack: {
-        manifest: files.manifest as { id: string },
-        flow: files.flow as never,
-        controls: (files.controls as never) ?? [],
-        intents: files.intents as never,
-        binders: files.binders as never,
-      },
+      pack: input.pack as never,
       scenarios: files.scenarios as never,
+      features: input.features as never,
     });
     const failures = check.results.filter((r) => !r.ok);
     if (failures.length > 0) {

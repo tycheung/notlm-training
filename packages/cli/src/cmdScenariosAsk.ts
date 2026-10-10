@@ -3,17 +3,20 @@ import {
   faqDraftFromSoftLabels,
   labelCandidates,
   resolveLabelerKind,
+  resolvePackFolder,
   tuneIntents,
 } from '@notlm-training/author';
 import { checkIntents } from '@notlm/core';
 import { createProviderFromEnv } from '@notlm-training/llm';
 import { join } from 'node:path';
+import { checkIntentsInputFromFiles } from './checkIntentsPack.js';
 import {
   draftsDir,
   ensureDir,
   loadPackFolderJson,
   pathExists,
   readJsonFile,
+  resolveActivePackDir,
   resolveNotlmHome,
   writeJsonFile,
 } from './notlmHome.js';
@@ -31,7 +34,7 @@ import { cmdScenariosGenerate } from './cmdScenarios.js';
 
 export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
   const dir = positionalDir(args);
-  const { home } = resolveNotlmHome(dir);
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!pathExists(home)) {
     console.error(`Missing NotLM home: ${home} (run notlmCLI init)`);
     process.exitCode = 1;
@@ -40,7 +43,8 @@ export async function cmdScenariosLabelPool(args: string[]): Promise<void> {
 
   const chunk = Math.max(1, Number(parseFlag(args, '--chunk') ?? '50') || 50);
   const useFixture = hasFlag(args, '--fixture') || process.env.NOTLM_SATURATE_FIXTURE === '1';
-  const files = loadPackFolderJson(home);
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const files = loadPackFolderJson(home, packDir);
   const productBlurb = resolveProductBlurb(args, files);
   const pool = loadPriorCandidates(home);
   if (pool.length === 0) {
@@ -157,8 +161,9 @@ export async function cmdScenariosAsk(args: string[]): Promise<void> {
 }
 
 export async function runIntentsTuneIfPossible(dir?: string): Promise<void> {
-  const { home } = resolveNotlmHome(dir);
-  const files = loadPackFolderJson(home);
+  const { home, projectRoot } = resolveNotlmHome(dir);
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const files = loadPackFolderJson(home, packDir);
   if (!files.scenarios || !files.intents) {
     console.log('tune: skip intents tune (need scenarios.json + pack/intents.json)');
     return;
@@ -174,15 +179,11 @@ export async function runIntentsTuneIfPossible(dir?: string): Promise<void> {
 
   let failingCases: unknown[] | undefined;
   if (files.manifest && files.flow && files.intents && Array.isArray(files.scenarios)) {
+    const input = checkIntentsInputFromFiles(files, packDir);
     const check = checkIntents({
-      pack: {
-        manifest: files.manifest as { id: string },
-        flow: files.flow as never,
-        controls: (files.controls as never) ?? [],
-        intents: files.intents as never,
-        binders: files.binders as never,
-      },
+      pack: input.pack as never,
       scenarios: files.scenarios as never,
+      features: input.features as never,
     });
     failingCases = check.results.filter((r) => !r.ok);
   }

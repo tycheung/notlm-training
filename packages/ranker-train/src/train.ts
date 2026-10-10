@@ -19,7 +19,28 @@ function labelFromCase(c: ScenarioCase): string {
   if (c.expect.goBack) return 'go_back';
   if (c.expect.rawIntent) return c.expect.rawIntent;
   if (c.expect.stepId) return `goto:${c.expect.stepId}`;
+  // FAQ paraphrase rows train the generic faq head (id comes from pack match at infer).
+  if (c.expect.faqId) return 'faq';
   return 'unknown';
+}
+
+/**
+ * Desk-query paraphrase rows are catalog/semantic — not ranker goto/faq heads.
+ * Keep in sync with author `rankerSourceDigest` / `decideRankerRetrain` filters.
+ */
+export function isRankerTrainableCase(c: ScenarioCase): boolean {
+  if (!c || typeof c.utterance !== 'string' || !c.expect) return false;
+  if (!String(c.utterance).trim()) return false;
+  if (
+    c.expect.queryId &&
+    !c.expect.stepId &&
+    !c.expect.faqId &&
+    !c.expect.rawIntent &&
+    !c.expect.goBack
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /** Expand corpus + alias phrases into supervised examples. */
@@ -27,20 +48,26 @@ export function examplesFromCorpus(
   corpus: ScenarioCase[],
   aliases?: Record<string, string[]>
 ): TrainExample[] {
-  const out: TrainExample[] = corpus.map((c) => ({
-    utterance: c.utterance,
-    intentLabel: labelFromCase(c),
-    slotKeys: Object.keys(
-      ((c.expect as { slots?: Record<string, unknown> }).slots ?? {}) as Record<
-        string,
-        unknown
-      >
-    ),
-  }));
+  const out: TrainExample[] = [];
+  for (const c of corpus) {
+    if (!isRankerTrainableCase(c)) continue;
+    out.push({
+      utterance: String(c.utterance).trim(),
+      intentLabel: labelFromCase(c),
+      slotKeys: Object.keys(
+        ((c.expect as { slots?: Record<string, unknown> }).slots ?? {}) as Record<
+          string,
+          unknown
+        >
+      ),
+    });
+  }
   if (aliases) {
     for (const [stepId, phrases] of Object.entries(aliases)) {
       for (const phrase of phrases) {
-        out.push({ utterance: phrase, intentLabel: `goto:${stepId}`, slotKeys: [] });
+        const utterance = String(phrase ?? '').trim();
+        if (!utterance) continue;
+        out.push({ utterance, intentLabel: `goto:${stepId}`, slotKeys: [] });
       }
     }
   }

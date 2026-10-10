@@ -11,6 +11,7 @@
     { "path": "../../../notlm/packages/core" },
     { "path": "../../../notlm/packages/schema" },
     { "path": "../laya-train" },
-    { "path": "../llm" }
+    { "path": "../llm" },
+    { "path": "../ranker-train" }
   ]
 }

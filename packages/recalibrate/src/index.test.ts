@@ -6,6 +6,7 @@ import {
   bucketExchanges,
   buildExchangeDraft,
   computeTrafficMetrics,
+  foldExchangeDraft,
   loadExchangesFromJson,
   loadExchangesFromRaw,
   writeConversationFoldDraft,
@@ -95,7 +96,16 @@ describe('recalibrate', () => {
     expect(d.proposedFaq[1]?.id).toBe('miss-faq-2');
     expect(d.proposedFaq[1]?.aliases).toEqual(['faq default aliases']);
     expect(d.proposedFaq[1]?.stepId).toBe('billing');
-    expect(d.proposedCorpus.some((c) => c.expect.stepId === null)).toBe(true);
+    expect(
+      d.proposedCorpus.some(
+        (c) => c.expect.stepId === null && c.expect.rawIntent === 'refuse'
+      )
+    ).toBe(true);
+    expect(
+      d.proposedCorpus
+        .filter((c) => c.expect.stepId === null)
+        .every((c) => c.expect.rawIntent === 'refuse')
+    ).toBe(true);
     expect(d.buckets.metaCount).toBe(1);
     expect(d.buckets.unlabeledCount).toBe(1);
     expect(d.note).toMatch(/Human-review.*pack accept/);
@@ -187,6 +197,288 @@ describe('recalibrate', () => {
     ) as Array<{ utterance: string; expect: { stepId: string | null } }>;
     expect(scenarios.some((s) => s.utterance === 'make a tourney')).toBe(true);
     expect(scenarios.some((s) => s.expect.stepId === null)).toBe(true);
+  });
+
+  it('writeFoldedPackDraft unwraps wrapped faq.json / corpus.json', () => {
+    const home = mkdtempSync(join(tmpdir(), 'notlm-fold-wrap-'));
+    const pack = join(home, 'pack');
+    mkdirSync(pack, { recursive: true });
+    writeFileSync(
+      join(pack, 'intents.json'),
+      JSON.stringify({ aliases: {} }),
+      'utf8'
+    );
+    writeFileSync(
+      join(pack, 'faq.json'),
+      JSON.stringify({
+        faq: [{ id: 'wrapped-faq', aliases: ['w'], text: 'from wrap' }],
+      }),
+      'utf8'
+    );
+    writeFileSync(
+      join(pack, 'corpus.json'),
+      JSON.stringify({
+        corpus: [{ utterance: 'wrapped row', expect: { stepId: null } }],
+      }),
+      'utf8'
+    );
+    const exDir = writeExchangeDraft(home, [sample[0]!]);
+    const foldedDir = writeFoldedPackDraft(home, join(exDir, 'draft.json'));
+    const faq = JSON.parse(readFileSync(join(foldedDir, 'faq.json'), 'utf8'));
+    expect(faq.some((f: { id: string }) => f.id === 'wrapped-faq')).toBe(true);
+    const corpus = JSON.parse(readFileSync(join(foldedDir, 'corpus.json'), 'utf8'));
+    expect(
+      corpus.some((c: { utterance: string }) => c.utterance === 'wrapped row')
+    ).toBe(true);
+  });
+
+  it('foldExchangeDraft rewrites legacy pack corpus stepIds that are query ids', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'exchange',
+        buckets: {
+          faqCount: 0,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {},
+        proposedFaq: [],
+        proposedCorpus: [],
+        exchanges: [],
+      },
+      {
+        currentQueries: [
+          { id: 'td.next_tournament', title: 'Next', aliases: ['next tournament'] },
+        ],
+        currentCorpus: [
+          {
+            utterance: 'legacy next tourney',
+            expect: { stepId: 'td.next_tournament' },
+          },
+        ],
+        currentScenarios: [
+          {
+            utterance: 'legacy scenario next',
+            expect: { stepId: 'td.next_tournament' },
+          },
+        ],
+        currentIntents: { aliases: {} },
+        draftId: 'legacy-corpus-rewrite',
+      }
+    );
+    expect(
+      folded.corpus.find((c) => c.utterance === 'legacy next tourney')?.expect
+    ).toMatchObject({ stepId: null, queryId: 'td.next_tournament' });
+    expect(
+      folded.scenarios.find((c) => c.utterance === 'legacy scenario next')?.expect
+    ).toMatchObject({ stepId: null, queryId: 'td.next_tournament' });
+  });
+
+  it('foldExchangeDraft adds query alias paraphrases to scenarios', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'exchange',
+        buckets: {
+          faqCount: 0,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {
+          'td.next_tournament': ['whats my next tournament'],
+        },
+        proposedFaq: [],
+        proposedCorpus: [],
+        exchanges: [],
+      },
+      {
+        currentQueries: [
+          { id: 'td.next_tournament', title: 'Next', aliases: ['next tournament'] },
+        ],
+        currentIntents: { aliases: {} },
+        draftId: 'query-alias-scenarios',
+      }
+    );
+    expect(
+      folded.scenarios.some(
+        (c) =>
+          c.utterance === 'whats my next tournament' &&
+          (c.expect as { queryId?: string }).queryId === 'td.next_tournament'
+      )
+    ).toBe(true);
+  });
+
+  it('foldExchangeDraft adds FAQ alias paraphrases to scenarios', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'faq-scenarios',
+        buckets: {
+          faqCount: 1,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {},
+        proposedFaq: [
+          {
+            id: 'faq-pricing',
+            aliases: ['what is pricing', 'how much does it cost'],
+            text: 'See Subscription.',
+          },
+        ],
+        proposedCorpus: [],
+        exchanges: [],
+      },
+      { draftId: 'faq-scen' }
+    );
+    expect(
+      folded.scenarios.some(
+        (c) =>
+          c.utterance === 'what is pricing' &&
+          (c.expect as { faqId?: string }).faqId === 'faq-pricing'
+      )
+    ).toBe(true);
+    expect(
+      folded.scenarios.some((c) => c.utterance === 'how much does it cost')
+    ).toBe(true);
+  });
+
+  it('foldExchangeDraft merges FAQ aliases and preserves empty draft text', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'exchange',
+        buckets: {
+          faqCount: 1,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {},
+        proposedFaq: [
+          {
+            id: 'pricing',
+            aliases: ['  what is pricing  ', 'what is pricing', ''],
+            text: '',
+          },
+        ],
+        proposedCorpus: [],
+        exchanges: [],
+      },
+      {
+        currentFaq: [
+          {
+            id: 'pricing',
+            aliases: ['price FAQ'],
+            text: 'Pricing is monthly.',
+            stepId: 'billing',
+          },
+        ],
+      }
+    );
+    const pricing = folded.faq.find((e) => e.id === 'pricing');
+    expect(pricing?.text).toBe('Pricing is monthly.');
+    expect(pricing?.stepId).toBe('billing');
+    expect(pricing?.aliases).toEqual(['price FAQ', 'what is pricing']);
+  });
+
+  it('foldExchangeDraft peels known query ids out of proposedAliases', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'exchange',
+        buckets: {
+          faqCount: 0,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {
+          'td.next_tournament': ['whats my next tournament'],
+          create_list: ['make a list'],
+          'td.unknown_query': ['mystery'],
+        },
+        proposedFaq: [],
+        proposedCorpus: [
+          {
+            utterance: 'whats my next tournament',
+            expect: { stepId: 'td.next_tournament' },
+          },
+          {
+            utterance: 'mystery ask',
+            expect: { stepId: 'td.unknown_query' },
+          },
+        ],
+        exchanges: [],
+      },
+      {
+        currentQueries: [
+          { id: 'td.next_tournament', title: 'Next', aliases: ['next tournament'] },
+        ],
+        currentIntents: { aliases: {} },
+        draftId: 'exchange-peel',
+      }
+    );
+    expect(
+      folded.queries?.queries
+        .find((q) => q.id === 'td.next_tournament')
+        ?.aliases.includes('whats my next tournament')
+    ).toBe(true);
+    expect(folded.intents.aliases.create_list).toContain('make a list');
+    expect(folded.intents.aliases['td.next_tournament']).toBeUndefined();
+    expect(folded.intents.aliases['td.unknown_query']).toBeUndefined();
+    const qRow = folded.corpus.find((c) => c.utterance === 'whats my next tournament');
+    expect(qRow?.expect).toMatchObject({
+      stepId: null,
+      queryId: 'td.next_tournament',
+    });
+    const dropped = folded.corpus.find((c) => c.utterance === 'mystery ask');
+    expect(dropped?.expect).toMatchObject({
+      stepId: null,
+      rawIntent: 'refuse',
+    });
+    expect((dropped?.expect as { queryId?: string }).queryId).toBeUndefined();
+  });
+
+  it('foldExchangeDraft merges proposedQueryAliases alongside proposedFaq', () => {
+    const folded = foldExchangeDraft(
+      {
+        note: 'hybrid',
+        buckets: {
+          faqCount: 1,
+          gotoSteps: {},
+          metaCount: 0,
+          refuseCount: 0,
+          unlabeledCount: 0,
+        },
+        proposedAliases: {},
+        proposedFaq: [
+          { id: 'faq-x', aliases: ['what is x'], text: 'X means x.' },
+        ],
+        proposedCorpus: [],
+        exchanges: [],
+        proposedQueryAliases: {
+          'td.next_tournament': ['when is my next event'],
+        },
+      } as Parameters<typeof foldExchangeDraft>[0],
+      {
+        currentQueries: [
+          { id: 'td.next_tournament', title: 'Next', aliases: ['next'] },
+        ],
+        currentFaq: [],
+        draftId: 'hybrid-query',
+      }
+    );
+    expect(
+      folded.queries?.queries
+        .find((q) => q.id === 'td.next_tournament')
+        ?.aliases.includes('when is my next event')
+    ).toBe(true);
+    expect(folded.faq.some((f) => f.id === 'faq-x')).toBe(true);
   });
 
   it('writeConversationFoldDraft supports review and auto checked flags', () => {

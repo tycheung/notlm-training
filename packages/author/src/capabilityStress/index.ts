@@ -26,6 +26,7 @@ export {
   proposePackPatch,
   applyPackPatch,
   writePackFolder,
+  writeSemanticBaseIndex,
   writeAutoReport,
   type PackPatch,
 } from './patch.js';

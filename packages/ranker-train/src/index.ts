@@ -1,6 +1,7 @@
 export {
   trainRanker,
   examplesFromCorpus,
+  isRankerTrainableCase,
   type TrainExample,
   type TrainRankerOptions,
 } from './train.js';

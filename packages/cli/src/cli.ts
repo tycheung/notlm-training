@@ -11,34 +11,36 @@ import {
   writeExchangeDraft,
   writeFoldedPackDraft,
 } from '@notlm-training/recalibrate';
+import { resolvePackFolder } from '@notlm-training/author';
 import { takeFlag, resolveDirAfterFromFlag } from './cliFlags.js';
+import { resolveActivePackDir, resolveNotlmHome } from './notlmHome.js';
 
 export { takeFlag } from './cliFlags.js';
 
 export function usage(): void {
-  console.log(`Usage (training modes):
-  notlm-training auto [dir] [--per-lane=5000] [--pass-rate=0.999] [--max-rounds=20]
-                        [--lanes=faq,goto,…] [--fixture] [--no-write]
-    # System One: LLM preset pre-prompts → N×13 lanes → score → patch pack → iterate
-  notlm-training auto ranker [dir]   # explicit pack/ranker.json retrain
+  console.log(`Usage — two entry points:
 
-  notlm-training e2eauto [dir] [--sources=faq-scenarios.json,…] [--fixture] [--once]
-                        [--max-rounds=0] [--max-lessons=0] [--checkpoint-every=1]
-                        [--min-f1=0.95] [--min-f1-cases=20]
-                        [--retrain-ranker-every=0] [--pause-ms=0] [--no-write]
-    # Browser-free audit/NLU loop: evaluate host scenarios → grade → checkpoint → learn → repeat
-    # Stop when sweep micro-F1 (TP/FP/FN) >= --min-f1. Writes host .notlm only.
+  notlm-training train [dir] [--fixture] [--per-lane=N] [--pass-rate=0.999]
+                       [--skip-auto|--skip-e2e] [--laya=1] [--force-ranker]
+    # Grow pack: capability stress (auto) → e2eauto → embed/ranker on drift
+    # Laya only when --laya=1. Custom semantic overlay never overwritten.
 
-  notlm-training feedback pull|draft|fold|metrics|accept|run|conversations|misses …
-  notlm-training feedback conversations pull|analyze …
+  notlm-training feedback [dir] [--url=…] [--from=misses.json] [--token=…]
+    # Prod promote: pull misses → cluster → draft-aliases (+ custom semantic)
+    # Post (embed/ranker[/laya]) runs on feedback accept; optional --post
 
-Authoring (not training modes):
-  notlm-training map|tune|prepare|inventory|extract|trace|annotate|jobs|checklist|dag|talk|pack …
-  notlm-training extract host <hostAppRoot>   # workshop → host .notlm/pack (deploy SoT)
-  notlm-training laya convert|train [dir] [--out=…] [--mode=full|light] [--dry-run]
+Post steps: rebuild semantic-index.json only on source drift;
+retrain ranker.json when aliases/corpus digest drifts (or --force-ranker);
+stamp digests only on success. train stops on phase failure unless --continue-on-error.
 
-Pack quality gates stay on operating notlmCLI:
-  notlmCLI validate | intents check | ranker check
+Legacy aliases (still work):
+  auto | e2eauto | auto ranker | misses … | pack embed-index | laya … | ranker train
+  feedback pull|draft|fold|accept|run|conversations|misses|embed-index …
+
+Authoring:
+  map|tune|prepare|inventory|extract|scenarios|pack author|accept|talk …
+
+Gates (notlmCLI): validate | intents check | ranker check
 `);
 }
 
@@ -100,7 +102,7 @@ export async function cmdDraft(args: string[]): Promise<void> {
     return;
   }
   const dir = resolveDirAfterFromFlag(args);
-  const home = join(dir, '.notlm');
+  const { home } = resolveNotlmHome(dir);
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
   }
@@ -121,11 +123,12 @@ export async function cmdFold(args: string[]): Promise<void> {
     return;
   }
   const dir = resolveDirAfterFromFlag(args);
-  const home = join(dir, '.notlm');
+  const { home, projectRoot } = resolveNotlmHome(dir);
   if (!existsSync(home)) {
     mkdirSync(join(home, 'drafts'), { recursive: true });
   }
-  const outDir = writeFoldedPackDraft(home, fromPath);
+  const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+  const outDir = writeFoldedPackDraft(home, fromPath, { packDir });
   console.log(
     `Folded pack draft → ${outDir} — review, set meta.checked=true, pack accept, then notlmCLI intents check`
   );
@@ -154,20 +157,27 @@ export async function runCli(argv: string[]): Promise<void> {
   const sub = argv[1];
   const rest = argv.slice(2);
   try {
+    if (cmd === 'train') {
+      const { cmdTrain } = await import('./cmdTrain.js');
+      await cmdTrain(argv.slice(1));
+      return;
+    }
     if (cmd === 'auto') {
       const { cmdAuto, cmdAutoRanker } = await import('./cmdAuto.js');
       if (!sub || sub.startsWith('--') || /^\d/.test(sub) || sub.includes('/') || sub.includes('\\')) {
+        console.warn('hint: prefer `notlm-training train` (auto + e2eauto + drift post)');
         await cmdAuto(argv.slice(1));
       } else if (sub === 'ranker') await cmdAutoRanker(rest);
       else if (sub === 'pause' || sub === 'resume' || sub === 'stop') {
         console.error(
-          `Removed: \`auto ${sub}\` belonged to the old growth loop. Use \`auto --max-rounds=N\` instead.`
+          `Removed: \`auto ${sub}\` belonged to the old growth loop. Use \`train --max-rounds=N\` instead.`
         );
         process.exitCode = 1;
       } else await cmdAuto(argv.slice(1));
       return;
     }
     if (cmd === 'e2eauto') {
+      console.warn('hint: prefer `notlm-training train` (includes e2eauto)');
       const { cmdE2eAuto } = await import('./cmdE2eAuto.js');
       await cmdE2eAuto(argv.slice(1));
       return;

@@ -108,6 +108,20 @@ export { e2eScenariosFromFlow, type E2eScenario } from './e2eScenarios.js';
 export { glossaryStubsFromControls, type GlossaryStub } from './glossaryCrawl.js';
 
 export {
+  decideSemanticRebuild,
+  decideRankerRetrain,
+  semanticSourceDigest,
+  rankerSourceDigest,
+  serializeExpect,
+  SEMANTIC_DIGEST_TEXT_CHARS,
+  type DriftDecision,
+  type PipelineState,
+  type SemanticIndexWithDigest,
+} from './pipeline/drift.js';
+
+export { writeCustomSemanticFromClusters } from './pipeline/customIndex.js';
+
+export {
   CAPABILITY_LANES,
   LANE_EXPECT,
   laneGeneratePrePrompt,
@@ -126,6 +140,7 @@ export {
   proposePackPatch,
   applyPackPatch,
   writePackFolder,
+  writeSemanticBaseIndex,
   writeAutoReport,
   DEFAULT_AUTO,
   resolveAutoConfig,
