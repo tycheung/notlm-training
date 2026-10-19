@@ -3,6 +3,8 @@
  * Combines capability stress (`auto`) + e2eauto, then drift-gated embed/ranker
  * and optional Laya (`--laya=1`).
  */
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { resolvePackFolder } from '@notlm-training/author';
 import { cmdAuto } from './cmdAuto.js';
 import { cmdE2eAuto } from './cmdE2eAuto.js';
@@ -10,6 +12,15 @@ import { hasFlag, takeFlag, positionalDir } from './cliFlags.js';
 import { exited } from './cliExit.js';
 import { pathExists, resolveActivePackDir, resolveNotlmHome } from './notlmHome.js';
 import { runPipelinePost, wantsLaya } from './pipelinePost.js';
+
+/** Pack has autosplit meta that ranker digest does not cover — force retrain. */
+function packNeedsAutosplitRetrain(packDir: string): boolean {
+  try {
+    return readdirSync(packDir).some((f) => /^autosplit\..+\.json$/i.test(f));
+  } catch {
+    return existsSync(join(packDir, 'autosplit.goto.json'));
+  }
+}
 
 export async function cmdTrain(args: string[]): Promise<void> {
   const dir = positionalDir(args);
@@ -98,12 +109,18 @@ export async function cmdTrain(args: string[]): Promise<void> {
   }
 
   if (!skipPost && writePack) {
+    const packDir = resolveActivePackDir(home, projectRoot, resolvePackFolder);
+    const force =
+      forceRanker || packNeedsAutosplitRetrain(packDir);
+    if (force && !forceRanker) {
+      console.log('train → force ranker (autosplit meta present)');
+    }
     const post = await runPipelinePost({
       home,
-      packDir: resolveActivePackDir(home, projectRoot, resolvePackFolder),
+      packDir,
       projectRoot,
-      forceRanker,
-      requireRanker: forceRanker,
+      forceRanker: force,
+      requireRanker: force,
       laya,
       layaDryRun,
     });

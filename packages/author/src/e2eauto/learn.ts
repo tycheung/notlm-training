@@ -217,7 +217,7 @@ export function lessonPatchFromGraded(
         {
           id: faqId,
           aliases: aliasForms,
-          text: `TODO: author answer for ${faqId}`,
+          text: `(Draft FAQ — write the answer for ${faqId}.)`,
         },
       ];
     }
