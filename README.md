@@ -109,6 +109,28 @@ npx notlm-training laya train ./my-app --mode=light --dry-run
 
 Produces `.notlm/laya/train.jsonl` and (with GPU + deps) a checkpoint. Nightly host promote paths update pack aliases / `ranker.json` only; they do not run `laya train` on the API box.
 
+## Action plane (do not pack-tune around it)
+
+Runtime `@notlm/core` separates **FAQ/answer** (pack-hot) from **actions**
+(ConfirmSession / `ActionIntent`: resolve once, freeze opaque ids, Yes executes
+only those ids). Offline training must respect that split:
+
+| Do | Don't |
+|----|-------|
+| Grow FAQ aliases / semantic docs for how-tos | Add synonym aliases to “fix” wrong `event_id` / delete / USBC confirms |
+| Stress `mutation_high_risk` for hard-gates (instruct-only, Actions Needed, page Confirm) | Expect chat Yes/Cancel for permanent USBC assign or tournament delete |
+| Stress `disambiguation` for “reply with a number” picks | Teach silent best-fuzzy across the whole account |
+| Leave host `actionPlaneFixtures.json` + `test:action-plane` as the ship gate | Treat FAQ copy assertions as proof of correct write targets |
+
+Host fixtures (e.g. VB `react-frontend/.notlm/pack/actionPlaneFixtures.json`) are
+**test-only** — not loaded by pack runtime. Architecture detail:
+`notlm/docs/adr/010-action-quarantine-and-conflict-defer.md` (ConfirmSession
+follow-up) and `notlm/ARCHITECTURE.md` (two-plane dispatch).
+
+When `feedback` / miss clustering drafts aliases that would bind mutate intents
+by fuzzy name alone, reject or rewrite toward FAQ/query heads — identity belongs
+on frozen `targetIds`, not pack phrases.
+
 ## CI
 
 ```bash

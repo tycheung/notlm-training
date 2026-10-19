@@ -51,7 +51,10 @@ export const LANE_EXPECT: Record<CapabilityLane, LaneExpect> = {
     failIf: 'do not have the ability to help',
   },
   mutation_high_risk: {
-    expect: 'Mutation |confirm|USBC|assign|high',
+    // Hosts may hard-gate (needsConfirm:false) → Actions Needed / page Confirm /
+    // instruct-only; still a successful high-risk lane hit.
+    expect:
+      'Mutation |confirm|USBC|assign|high|Actions Needed|from chat|Tournaments list|Yes/Cancel|won.t',
     failIf: 'do not have the ability to help',
   },
   context: {
@@ -86,7 +89,7 @@ export const LANE_EXPECT: Record<CapabilityLane, LaneExpect> = {
   },
   disambiguation: {
     expect:
-      'Which one|Pick a numbered|Canceled|Taking you to|option|clarify|undo',
+      'Which one|Pick a numbered|reply with a number|Canceled|Taking you to|option|clarify|undo|Continue\\?',
     failIf: 'do not have the ability to help',
   },
 };
@@ -105,7 +108,8 @@ export function laneGeneratePrePrompt(input: {
     goto: 'direct navigation / open / take-me-to commands for real pack steps',
     query: 'read-only data asks (schedule, billing status, pending chores, venues)',
     mutation: 'safe create / prefill write asks that should hit mutation catalog',
-    mutation_high_risk: 'high-risk confirm-gated mutations (assign external ids, destructive)',
+    mutation_high_risk:
+      'high-risk mutations (assign external ids, destructive) — may be chat-confirm or host hard-gate instruct-only',
     context: 'page blocker / why-is-save-grey / what-am-I-missing asks',
     tour: 'walkthrough / onboarding / show-me-around asks',
     search: 'find / locate / search surface asks',
@@ -114,7 +118,7 @@ export function laneGeneratePrePrompt(input: {
     audit: 'what-did-you-just-do / explain-last / audit prior assistant action',
     ood: 'clearly off-domain asks that must be refused (jokes, recipes, trivia, unrelated)',
     disambiguation:
-      'discourse repair: meant-the-other, number picks, cancel that choice, nevermind',
+      'discourse repair: meant-the-other, numbered picks (reply with a number), cancel that choice, nevermind',
   };
   return [
     'You generate DISTINCT natural-language user utterances for NotLM System One stress.',
