@@ -16,10 +16,8 @@ import {
   resolveAutoConfig,
   runAutoLoop,
   CAPABILITY_LANES,
-  proposeAutosplit,
   proposeSizeAutosplit,
   applyAutosplitToPack,
-  confusionFromEvalRows,
   type CapabilityLane,
 } from '@notlm-training/author';
 import { cmdRankerTrain } from './cmdRanker.js';
@@ -133,46 +131,24 @@ export async function cmdAuto(args: string[]): Promise<void> {
     onLog: (msg) => console.log(msg),
   });
 
-  // ADR-011: auto-apply submodel split (FP clash or size gate). No human accept.
+  // ADR-011: size-gate autosplit on goto labels (ranker-shaped `goto:stepId`).
+  // Stress FP rows use a different label namespace — do not feed them to proposeAutosplit.
   let autosplitApplied = false;
   if (writePack) {
-    let plan = null as ReturnType<typeof proposeAutosplit>;
-    if (report.final.hardFails > 0) {
-      const failures = report.final.failures ?? [];
-      const rows = failures.map((f) => ({
-        expected: `lane:${f.lane}`,
-        predicted: f.hit ? `hit:${f.hit}` : 'hit:unknown',
-        confidence: 0.8,
-      }));
-      const pairs = confusionFromEvalRows(rows);
-      const labels = [
-        ...new Set(rows.flatMap((r) => [r.expected, r.predicted])),
-      ];
-      plan = proposeAutosplit(pairs, labels, {
-        minSupport: Math.min(3, Math.max(1, report.final.hardFails)),
-        minConfidence: 0.55,
-        depth: 0,
-        maxDepth: 3,
-      });
+    let gotoLabels: string[] = [];
+    try {
+      const intents = JSON.parse(
+        readFileSync(join(packDir, 'intents.json'), 'utf8')
+      ) as { aliases?: Record<string, string[]> };
+      gotoLabels = Object.keys(intents.aliases ?? {}).map((id) => `goto:${id}`);
+    } catch {
+      /* optional */
     }
-    if (!plan) {
-      // Size-gate from intents aliases (goto leaf often the largest).
-      let gotoLabels: string[] = [];
-      try {
-        const intents = JSON.parse(
-          readFileSync(join(packDir, 'intents.json'), 'utf8')
-        ) as { aliases?: Record<string, string[]> };
-        gotoLabels = Object.keys(intents.aliases ?? {}).map((id) => `goto:${id}`);
-      } catch {
-        /* optional */
-      }
-      plan = proposeSizeAutosplit(gotoLabels, 'goto', {
-        // VB-scale packs often have ~20 goto heads but 10k+ rows — split early.
-        maxLabels: 16,
-        depth: 0,
-        maxDepth: 3,
-      });
-    }
+    const plan = proposeSizeAutosplit(gotoLabels, 'goto', {
+      maxLabels: 16,
+      depth: 0,
+      maxDepth: 3,
+    });
     if (plan) {
       const applied = applyAutosplitToPack({
         packDir,
