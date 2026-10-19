@@ -1,4 +1,4 @@
-/** Trains intent+slot ranker from pack corpus (+ aliases) → pack/ranker.json (+ .onnx). */
+/** Trains intent+slot ranker from pack corpus (+ aliases) → pack/ranker.json (+ multi-stage). */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolvePackFolder } from '@notlm-training/author';
@@ -8,6 +8,7 @@ import {
   formatCalibrationSummary,
   reportRankerCalibration,
   trainRanker,
+  writeMultiStageRankers,
 } from '@notlm-training/ranker-train';
 import type { RankerModelJson } from '@notlm/ranker';
 import type { ScenarioCase } from '@notlm/core';
@@ -19,7 +20,7 @@ import {
   unwrapCatalogArray,
   writeJsonFile,
 } from './notlmHome.js';
-import { parseFlag } from './cliFlags.js';
+import { parseFlag, hasFlag } from './cliFlags.js';
 
 function readJsonArray(path: string, key: string): ScenarioCase[] {
   if (!existsSync(path)) return [];
@@ -66,21 +67,40 @@ export async function cmdRankerTrain(args: string[]): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const model: RankerModelJson = trainRanker(examples, { epochs, dim, seed: 42 });
-
   ensureDir(pack);
-  const jsonPath = join(pack, 'ranker.json');
-  writeJsonFile(jsonPath, model);
+  const skipTree = hasFlag(args, '--flat-only');
+  let model: RankerModelJson;
+  if (skipTree) {
+    model = trainRanker(examples, { epochs, dim, seed: 42 });
+    writeJsonFile(join(pack, 'ranker.json'), model);
+  } else {
+    const multi = writeMultiStageRankers({
+      packDir: pack,
+      corpus: labeled,
+      aliases,
+      epochs,
+      dim,
+    });
+    model = JSON.parse(readFileSync(multi.flatPath, 'utf8')) as RankerModelJson;
+    console.log(
+      `multi-stage plane/lane/leaves written; splits=${multi.splitsApplied.join(',') || 'none'} leaves=${multi.leafPaths.length}`
+    );
+  }
 
+  const jsonPath = join(pack, 'ranker.json');
   const onnxPath = join(pack, 'ranker.onnx');
   try {
     const bytes = exportIntentOnnx(model);
     writeFileSync(onnxPath, bytes);
-    console.log(`Wrote ${jsonPath} + ${onnxPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`);
+    console.log(
+      `Wrote ${jsonPath} + ${onnxPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.warn(`ONNX export skipped: ${msg}`);
-    console.log(`Wrote ${jsonPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`);
+    console.log(
+      `Wrote ${jsonPath} (${model.exampleCount} examples, ${model.intentLabels.length} intents)`
+    );
   }
   console.log('Enable at runtime: features.onnxRanker=true or NOTLM_ONNX_RANKER=1');
   const cal = reportRankerCalibration(model, labeled, { minProbability: 0.35 });

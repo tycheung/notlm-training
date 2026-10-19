@@ -109,6 +109,26 @@ npx notlm-training laya train ./my-app --mode=light --dry-run
 
 Produces `.notlm/laya/train.jsonl` and (with GPU + deps) a checkpoint. Nightly host promote paths update pack aliases / `ranker.json` only; they do not run `laya train` on the API box.
 
+## Hierarchical routing tree (active — NotLM G12 / Ledger `ht-*`)
+
+Training target is multi-stage pack artifacts (not one forever-flat ranker):
+
+1. **Plane** — `ask | guide | do` (NLU-first; chrome toggle is soft bias only)
+2. **Lane** — the 13 `CAPABILITY_LANES` (masked by plane)
+3. **Leaf** — per-lane classifiers / catalogs
+
+**Shipped:** `ranker train` / pipeline post write `ranker.plane.json`,
+`ranker.lane.json`, `ranker.leaves.<lane>.json` (+ size-split children
+`ranker.leaves.<lane>__a|__b.json`) and patch `routingTree.json` on the host
+`.notlm/pack/`. Flat `ranker.json` remains the fallback leaf. **Autosplit**
+during `notlm-training auto`: confident FP overlap **or** size gate
+(labels / examples) **applies** a submodel split to the host pack — no human
+`pack accept`. Reports under `.notlm/train-auto/` + `autosplit.<leaf>.json`.
+Manual `feedback` / `pack author` alias drafts stay accept-gated.
+
+See `notlm/docs/PLAN_GAP.md`, `PROGRESS.md`, `SLICE_BACKLOG.md` §P11,
+`docs/adr/011-hierarchical-routing-tree.md`.
+
 ## Action plane (do not pack-tune around it)
 
 Runtime `@notlm/core` separates **FAQ/answer** (pack-hot) from **actions**

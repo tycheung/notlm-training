@@ -190,3 +190,14 @@ export {
   type E2eGraded,
   type E2eOutcome,
 } from './e2eauto/index.js';
+
+export {
+  proposeAutosplit,
+  proposeSizeAutosplit,
+  applyAutosplitToPack,
+  confusionFromEvalRows,
+  type ConfusionPair,
+  type AutosplitPlan,
+  type AutosplitOpts,
+  type ApplyAutosplitResult,
+} from './autosplit.js';

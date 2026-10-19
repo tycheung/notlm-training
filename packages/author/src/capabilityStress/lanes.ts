@@ -1,4 +1,12 @@
-/** 13 System One capability lanes; host packs supply domain seeds. */
+/** Re-export platform lanes (SSOT: `@notlm/core`). Host packs supply domain seeds. */
+import {
+  CAPABILITY_LANES,
+  type CapabilityLane,
+} from '@notlm/core';
+
+export { CAPABILITY_LANES, type CapabilityLane };
+
+/** Default stress subset (excludes compare/handoff/audit unless opted in). */
 export const CORE_CAPABILITY_LANES = [
   'faq',
   'goto',
@@ -10,17 +18,7 @@ export const CORE_CAPABILITY_LANES = [
   'search',
   'ood',
   'disambiguation',
-] as const;
-
-/** All 13 lanes (core + compare, handoff, audit) for opt-in stress runs. */
-export const CAPABILITY_LANES = [
-  ...CORE_CAPABILITY_LANES,
-  'compare',
-  'handoff',
-  'audit',
-] as const;
-
-export type CapabilityLane = (typeof CAPABILITY_LANES)[number];
+] as const satisfies readonly CapabilityLane[];
 
 export type LaneExpect = {
   /** RegExp source tested against synthetic reply text. */
