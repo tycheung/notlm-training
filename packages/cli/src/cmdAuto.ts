@@ -196,7 +196,10 @@ export async function cmdAuto(args: string[]): Promise<void> {
       home,
       packDir,
       projectRoot,
-      forceRanker: report.rounds > 0 && report.final.hardFails === 0,
+      // Always retrain after autosplit so leaf JSON matches routingTree pointers.
+      forceRanker:
+        autosplitApplied ||
+        (report.rounds > 0 && report.final.hardFails === 0),
       laya: wantsLaya(args),
       layaDryRun: hasFlag(args, '--laya-dry-run') || hasFlag(args, '--dry-run'),
     });

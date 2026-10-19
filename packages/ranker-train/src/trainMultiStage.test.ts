@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { ScenarioCase } from '@notlm/core';
 import {
   bipartitionLabels,
+  readAutosplitMeta,
   writeMultiStageRankers,
 } from './trainMultiStage.js';
 
@@ -56,5 +57,41 @@ describe('trainMultiStage', () => {
       const path = join(dir, `${stem}.json`);
       expect(existsSync(path), `missing leaf for ${lane}: ${path}`).toBe(true);
     }
+  });
+
+  it('writeMultiStageRankers honors pack autosplit.*.json label partitions', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'notlm-mst-meta-'));
+    writeFileSync(
+      join(dir, 'autosplit.goto.json'),
+      JSON.stringify({
+        parent: 'goto',
+        childA: { id: 'goto__a', labels: ['goto:open_checklist'] },
+        childB: { id: 'goto__b', labels: ['goto:create_item'] },
+      }),
+      'utf8'
+    );
+    expect(readAutosplitMeta(dir, 'goto')?.childA.id).toBe('goto__a');
+    const corpus: ScenarioCase[] = [
+      { utterance: 'open the checklist', expect: { stepId: 'open_checklist' } },
+      { utterance: 'go to create item', expect: { stepId: 'create_item' } },
+      { utterance: 'open pots desk', expect: { stepId: 'open_checklist' } },
+      { utterance: 'new item please', expect: { stepId: 'create_item' } },
+      { utterance: 'checklist again', expect: { stepId: 'open_checklist' } },
+      { utterance: 'create once more', expect: { stepId: 'create_item' } },
+    ];
+    const r = writeMultiStageRankers({
+      packDir: dir,
+      corpus,
+      aliases: {
+        open_checklist: ['open pots', 'checklist desk'],
+        create_item: ['new item'],
+      },
+      maxLeafLabels: 100,
+      epochs: 8,
+      dim: 32,
+    });
+    expect(r.splitsApplied.some((s) => s.includes('(meta)'))).toBe(true);
+    expect(existsSync(join(dir, 'ranker.leaves.goto__a.json'))).toBe(true);
+    expect(existsSync(join(dir, 'ranker.leaves.goto__b.json'))).toBe(true);
   });
 });

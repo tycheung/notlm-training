@@ -11,6 +11,7 @@ export {
   leafExamplesByLane,
   writeMultiStageRankers,
   bipartitionLabels,
+  readAutosplitMeta,
   DEFAULT_MAX_LEAF_LABELS,
   DEFAULT_MAX_LEAF_EXAMPLES,
   type MultiStageWriteResult,

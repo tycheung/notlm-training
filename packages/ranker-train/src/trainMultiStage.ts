@@ -42,7 +42,10 @@ function laneForExample(ex: TrainExample): CapabilityLane | null {
   }
   if (label.startsWith('query') || label === 'data_query') return 'query';
   if (label.startsWith('mutate') || label === 'mutation') {
-    return /delete|assign_usbc|high/i.test(label) ? 'mutation_high_risk' : 'mutation';
+    // Generic risk cues only — no host-product intent ids in ranker-train.
+    return /delete|destroy|purge|wipe|high_risk|mutation_high/i.test(label)
+      ? 'mutation_high_risk'
+      : 'mutation';
   }
   if (label === 'tour' || label.startsWith('tour:')) return 'tour';
   if (label === 'search' || label.startsWith('search:')) return 'search';
@@ -117,6 +120,35 @@ export function bipartitionLabels(labels: string[]): { a: string[]; b: string[] 
   if (sorted.length < 4) return { a: sorted, b: [] };
   const mid = Math.ceil(sorted.length / 2);
   return { a: sorted.slice(0, mid), b: sorted.slice(mid) };
+}
+
+type AutosplitMeta = {
+  parent: string;
+  childA: { id: string; labels: string[] };
+  childB: { id: string; labels: string[] };
+};
+
+/** Read pack `autosplit.<leaf>.json` written by `auto` / prior size gates. */
+export function readAutosplitMeta(
+  packDir: string,
+  parentLane: string
+): AutosplitMeta | null {
+  const metaPath = join(packDir, `autosplit.${parentLane}.json`);
+  if (!existsSync(metaPath)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(metaPath, 'utf8')) as AutosplitMeta;
+    if (
+      !raw?.childA?.id ||
+      !raw?.childB?.id ||
+      !Array.isArray(raw.childA.labels) ||
+      !Array.isArray(raw.childB.labels)
+    ) {
+      return null;
+    }
+    return raw;
+  } catch {
+    return null;
+  }
 }
 
 function applySizeSplitMeta(
@@ -209,8 +241,35 @@ export function writeMultiStageRankers(input: {
     const examples = byLane.get(lane) ?? [];
     if (examples.length < MIN_EXAMPLES) continue;
     const labels = [...new Set(examples.map((e) => e.intentLabel))];
+    // Prefer pack autosplit meta from `auto` (FP or size) so retrain matches tree.
+    const prior = readAutosplitMeta(input.packDir, lane);
     const oversized =
       labels.length > maxLeafLabels || examples.length > maxLeafExamples;
+    if (prior && prior.childA.labels.length && prior.childB.labels.length) {
+      const a = prior.childA.labels;
+      const b = prior.childB.labels;
+      const childA = prior.childA.id;
+      const childB = prior.childB.id;
+      const exA = examples.filter((e) => a.includes(e.intentLabel));
+      const exB = examples.filter((e) => b.includes(e.intentLabel));
+      const pathA = join(input.packDir, `ranker.leaves.${childA}.json`);
+      const pathB = join(input.packDir, `ranker.leaves.${childB}.json`);
+      if (writeModel(pathA, exA.length >= MIN_EXAMPLES ? exA : examples, dim, epochs)) {
+        leafPaths.push(pathA);
+        leafPointers[childA] = `ranker.leaves.${childA}`;
+      }
+      if (writeModel(pathB, exB.length >= MIN_EXAMPLES ? exB : examples, dim, epochs)) {
+        leafPaths.push(pathB);
+        leafPointers[childB] = `ranker.leaves.${childB}`;
+      }
+      const parentPath = join(input.packDir, `ranker.leaves.${lane}.json`);
+      if (writeModel(parentPath, examples, dim, epochs)) {
+        leafPaths.push(parentPath);
+        leafPointers[lane] = `ranker.leaves.${lane}`;
+      }
+      splitsApplied.push(`${lane}→${childA}/${childB} (meta)`);
+      continue;
+    }
     if (oversized) {
       const { a, b } = bipartitionLabels(labels);
       if (b.length >= 2) {
